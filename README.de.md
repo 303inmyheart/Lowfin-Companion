@@ -1,4 +1,4 @@
-# Lowfin Companion 0.5.1
+# Lowfin Companion 0.6.0
 
 **Dieses Projekt wurde zu 100 % mit KI erstellt — Code, Dokumentation und Gestaltung.**
 
@@ -12,7 +12,7 @@ Es verwendet Jellyfins normale Benutzeranmeldung. Zusätzliche API-Keys sind nic
 ## Installation
 
 1. Für manuelle Installation das Release-Paket mit `-manual.zip` verwenden; das Paket ohne diesen Zusatz ist für Jellyfins Katalog-Installer. Jellyfin beenden.
-2. Den gesamten aktuellen Ordner `Lowfin.Companion_0.5.1.0` in Jellyfins bestehenden `plugins`-Ordner kopieren. Die DLL, `meta.json` und `lowfin-companion.png` müssen direkt in diesem Unterordner liegen. Beim Update den bisherigen Lowfin-Companion-Ordner aus `plugins` herausnehmen und als Sicherung aufbewahren, damit nur die neue Version geladen wird. Die separaten Daten unter `lowfin-companion` beibehalten.
+2. Den gesamten aktuellen Ordner `Lowfin.Companion_0.6.0.0` in Jellyfins bestehenden `plugins`-Ordner kopieren. Die DLL, `meta.json` und `lowfin-companion.png` müssen direkt in diesem Unterordner liegen. Beim Update den bisherigen Lowfin-Companion-Ordner aus `plugins` herausnehmen und als Sicherung aufbewahren, damit nur die neue Version geladen wird. Die separaten Daten unter `lowfin-companion` beibehalten.
 3. Sicherstellen, dass der Jellyfin-Prozess die Dateien lesen und seinen Datenordner beschreiben kann.
 4. Jellyfin neu starten. Unter Dashboard → Plugins erscheint **Lowfin Companion** mit dem Bild.
 5. Lowfin neu öffnen. Auf Film- und Folgendetailseiten erscheint **Smart Completion**. Die allgemeine Regel für lange Videos liegt unter Einstellungen → Wiedergabe.
@@ -89,7 +89,7 @@ Das Plugin-Dashboard zeigt Bereitschaft, Anzahl, letzten Vollabgleich, letzte Ä
 
 Der HDR-Schalter im Dashboard erlaubt HDR10, HDR10+, HLG und Dolby Vision als Inhaltskennzeichnung. Lowfin zeigt den HDR-Tag **nur bei aktivierter HDR-Wiedergabe auf dem jeweiligen Gerät** (standardmäßig aus). Er übernimmt nicht die Wiedergabeentscheidung und schaltet HDR nicht selbst ein. Der lokale Tag-Sichtbarkeitsschalter verbirgt weiterhin alle Tags. Serien-/Staffelmehrheiten betreffen weiterhin nur DVD.
 
-### Index-Diagnose ab 0.5.1
+### Index-Diagnose ab 0.6.0
 
 Die geplante Aufgabe meldet Fortschritt für Medienprüfung, benutzerspezifische Serien-/Staffelauswertung und Speichern. Bei einem parallelen Hintergrundlauf wartet sie auf dessen Ergebnis, statt einen zweiten vollständigen Lauf zu starten. Im Jellyfin-Log nach `Lowfin cover index` suchen: Start, Abschluss, Fehler, Abbruch und alle 15 Sekunden Phase, Prozentwert und Zähler werden auf Information-Level protokolliert. Auch während einer langsamen Datenbankabfrage bleibt damit der zuletzt erreichte Stand erkennbar. Die Plugin-Einstellungen zeigen diese Werte beim Aktualisieren des Indexstatus ebenfalls. Ein erster Aufbau kann bei vielen Staffeln und Benutzern länger dauern; bestehende vollständige Indexdaten bleiben nutzbar.
 

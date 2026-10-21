@@ -4,7 +4,7 @@
 
 <img src="assets/lowfin-companion.png" alt="Lowfin Companion" width="260" />
 
-Optional server-side companion for [Lowfin](https://github.com/303inmyheart/Lowfin), designed for **Jellyfin 12.2.x**. Current plugin version: **0.5.1**. The Android TV client works independently when the plugin is absent.
+Optional server-side companion for [Lowfin](https://github.com/303inmyheart/Lowfin), designed for **Jellyfin 12.2.x**. Current plugin version: **0.6.0**. The Android TV client works independently when the plugin is absent.
 
 [Deutsche Anleitung](README.de.md)
 
@@ -17,7 +17,7 @@ Optional server-side companion for [Lowfin](https://github.com/303inmyheart/Lowf
 - **Incremental library cache:** a persistent change journal lets Lowfin update changed metadata and artwork instead of rebuilding the completed library cache. Library permissions and resume exclusions remain respected.
 - **Server-side provider configuration:** OMDb, MDBList, TMDB and Tracearr credentials in the Jellyfin plugin dashboard, with all-user or selected-user access. Lowfin retains its provider/display toggles and local rating-cache setting.
 - **Cover tags:** optional DVD/SD, 5.1 and HDR facts. Lowfin draws the labels in the visible artwork frame; originals and other clients' images stay unchanged. Series/season DVD majority uses available episodes. HDR tags additionally require HDR playback enabled in that Lowfin client.
-- **Persistent tag index:** event-driven changes plus a 24-hour reconciliation task. Version 0.5.1 adds progress, phase counters and 15-second diagnostic logs; search the Jellyfin log for `Lowfin cover index`.
+- **Persistent tag index:** event-driven changes plus a 24-hour reconciliation task. Version 0.6.0 adds progress, phase counters and 15-second diagnostic logs; search the Jellyfin log for `Lowfin cover index`.
 
 ## Compatibility and limits
 
@@ -31,7 +31,7 @@ Download the locally built package from [GitHub releases](https://github.com/303
 
 1. Download the `-manual.zip` release asset, or build and package locally (see below). The unsuffixed ZIP is the flat package used by Jellyfin’s repository installer.
 2. Stop Jellyfin.
-3. Extract `artifacts/Lowfin-Companion-0.5.1.zip` and copy its entire `Lowfin.Companion_0.5.1.0` directory into Jellyfin's plugin directory. DLL, `meta.json` and image must be directly inside that versioned directory.
+3. Extract `artifacts/Lowfin-Companion-0.6.0.zip` and copy its entire `Lowfin.Companion_0.6.0.0` directory into Jellyfin's plugin directory. DLL, `meta.json` and image must be directly inside that versioned directory.
 4. Move the previous Companion plugin directory out of `plugins` as a backup, so only one version loads. Preserve the separate `lowfin-companion` data directory.
 5. Start Jellyfin and open Dashboard → Plugins → Lowfin Companion. Configure providers/user access and optional tags there, then reopen Lowfin.
 
@@ -90,3 +90,13 @@ Index status is available in the admin-only plugin dashboard/status endpoint. Ex
 - `assets/`: plugin artwork and design notes.
 
 Licensed under [GNU GPL v2](LICENSE), matching the Lowfin project.
+
+## Extended cover tags (0.6.0)
+
+The dashboard can select DVD/SD, 720p, 1080p, 4K, HDR/HDR10/HDR10+/Dolby Vision/HLG, 3D, H.264/HEVC/AV1/VP9, Atmos/DTS:X/TrueHD/DTS-HD MA, 7.1/5.1/stereo, audio languages and VOST subtitle language codes. Stereo is disabled by default. HDR labels also require HDR playback to be enabled on that Lowfin device.
+
+These are Lowfin-native overlays attached to the card frame, not modified server images. Other clients remain unchanged. Series and season DVD labels require a strict majority of visible episodes; other resolution labels use the highest available resolution. Container codec and language labels describe available episodes, not necessarily every episode. The background index persists facts and reconciles them every 24 hours and on library events.
+
+Language labels use compact ISO codes rather than flags. Small cards bound the tag area and show an overflow count. Older clients continue to receive the original DVD/5.1/HDR mask.
+
+Detection categories were informed by [JellyTag](https://github.com/Atilil/jellyfin-plugins); see [third-party notices](THIRD_PARTY.md). No upstream image assets are used.

@@ -9,7 +9,7 @@ namespace Lowfin.Companion;
 
 /// <summary>Frame-relative badge facts for Lowfin. Source images and Jellyfin image endpoints stay untouched.</summary>
 public static class MediaBadges {
-    public static object Settings(PluginConfiguration? config)=>new { enabled=config?.ImageBadgesEnabled==true,dvd=config?.ShowDvdBadge!=false,surround=config?.ShowSurroundBadge!=false,hdr=config?.ShowHdrBadge!=false,version=1 };
+    public static object Settings(PluginConfiguration? config)=>new { enabled=config?.ImageBadgesEnabled==true,dvd=config?.ShowDvdBadge!=false,surround=config?.ShowSurroundBadge!=false,hdr=config?.ShowHdrBadge!=false,version=1,labelVersion=1,tags=ExpandedBadges.Enabled(config) };
     public static int Detect(IEnumerable<MediaStream> streams) {
         var all=streams.ToArray(); var video=all.FirstOrDefault(s=>s.Type==MediaStreamType.Video);
         // Cropped ultrawide HD must not become DVD just because its height is below 576.
