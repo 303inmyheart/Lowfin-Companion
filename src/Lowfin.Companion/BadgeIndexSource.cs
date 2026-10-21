@@ -13,7 +13,8 @@ public sealed class BadgeIndexSource(ILibraryManager library,IUserManager users,
             Season season=>new[]{season.ParentId}.Where(x=>x!=Guid.Empty).ToArray(),
             _=>[]
         };
-        return new(item.Id,MediaBadges.ForItem(item),item is Series or Season,parents);
+        var video=item as Video;var streams=video?.GetMediaSources(false).FirstOrDefault()?.MediaStreams??[];
+        return new(item.Id,video==null?0:MediaBadges.Detect(streams),item is Series or Season,parents,video==null?[]:ExpandedBadges.Detect(streams,video.Video3DFormat.HasValue));
     }
     public int? TotalCount()=>library.GetItemsResult(new InternalItemsQuery { Recursive=true,IncludeItemTypes=[BaseItemKind.Movie,BaseItemKind.Video,BaseItemKind.Episode,BaseItemKind.Series,BaseItemKind.Season],IsVirtualItem=false,Limit=0,EnableTotalRecordCount=true }).TotalRecordCount;
     public IEnumerable<BadgeIndexItem> All(CancellationToken cancellation) {
@@ -29,5 +30,16 @@ public sealed class BadgeIndexSource(ILibraryManager library,IUserManager users,
     public int Container(Guid id,Guid userId) {
         var user=users.GetUserById(userId);var item=library.GetItemById(id);
         return user!=null&&item!=null&&item.IsVisibleStandalone(user)?MediaBadges.ForContainer(item,user,library):0;
+    }
+    public string[] ContainerTags(Guid id,Guid userId,IReadOnlyDictionary<Guid,BadgeIndexItem> items,CancellationToken cancellation=default) {
+        var user=users.GetUserById(userId);var parent=library.GetItemById(id);if(user==null||parent==null||!parent.IsVisibleStandalone(user)) return [];
+        var tags=new HashSet<string>(StringComparer.Ordinal);
+        for(int offset=0;;offset+=200) {
+            cancellation.ThrowIfCancellationRequested();
+            var page=library.GetItemList(new InternalItemsQuery(user) { ParentId=id,Recursive=true,IncludeItemTypes=[BaseItemKind.Episode],IsVirtualItem=false,IsMissing=false,StartIndex=offset,Limit=200,EnableTotalRecordCount=false });
+            foreach(var item in page) if(items.TryGetValue(item.Id,out var facts)) tags.UnionWith(facts.Labels??[]);
+            if(page.Count<200) break;
+        }
+        return tags.Order(StringComparer.Ordinal).Take(64).ToArray();
     }
 }

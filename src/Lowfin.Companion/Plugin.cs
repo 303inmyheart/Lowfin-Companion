@@ -14,6 +14,7 @@ public sealed class PluginConfiguration : BasePluginConfiguration {
     public bool ShowDvdBadge { get; set; }=true;
     public bool ShowSurroundBadge { get; set; }=true;
     public bool ShowHdrBadge { get; set; }=true;
+    public string[] EnabledCoverTags { get; set; }=ExpandedBadges.Keys.Where(key=>key!="stereo").ToArray();
     public bool ProvidersAllUsers { get; set; }=true;
     public Guid[] ProviderUserIds { get; set; }=[];
     public string OmdbKey { get; set; }="";

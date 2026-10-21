@@ -68,6 +68,16 @@ public sealed class BadgeIndexTests : IDisposable {
         source.Items[movie]=new(movie,7,false,[series,season]);index.Queue(movie);await index.Update(default);Assert.Equal(7,index.Get(movie,user,"scope-a",false));
         Assert.Equal(3,new BadgeIndex(directory,source,_=>{},clock).Get(movie,user,"scope-a",false));await index.Flush(default);Assert.Equal(7,new BadgeIndex(directory,source,_=>{},clock).Get(movie,user,"scope-a",false));
     }
+    [Fact] public async Task NamedFactsPersistAndLabelOnlyChangesNotifyWithoutLosingExistingMasks() {
+        var source=Fixture();source.Items[movie]=source.Items[movie] with {Labels=["4k","hevc"]};var notified=new HashSet<Guid>();var index=new BadgeIndex(directory,source,ids=>notified.UnionWith(ids));await index.Rebuild(default);
+        Assert.Equal(new[]{"4k","hevc"},index.GetLabels(movie,user,"scope-a",false));
+        source.Items[movie]=source.Items[movie] with {Labels=["1080p","h264"]};index.Queue(movie);await index.Update(default);await index.Flush(default);
+        Assert.Contains(movie,notified);var restored=new BadgeIndex(directory,source,_=>{});Assert.Equal(new[]{"1080p","h264"},restored.GetLabels(movie,user,"scope-a",false));Assert.Equal(3,restored.Get(movie,user,"scope-a",false));
+    }
+    [Fact] public async Task UpgradingOldIndexDoesNotFloodMetadataJournalWithLabelOnlyMigration() {
+        var source=Fixture();var notified=new HashSet<Guid>();var index=new BadgeIndex(directory,source,ids=>notified.UnionWith(ids));await index.Rebuild(default);
+        source.Items[movie]=source.Items[movie] with {Labels=["dvd","h264"]};await index.Rebuild(default);Assert.Empty(notified);Assert.Equal(new[]{"dvd","h264"},index.GetLabels(movie,user,"scope-a",false));
+    }
     private sealed class Progress(Action<double> report) : IProgress<double> { public void Report(double value)=>report(value); }
     [Fact] public async Task RebuildReportsIntermediatePhasesAndOnlyCompletesAfterSnapshotIsReadable() {
         var source=Fixture();var index=new BadgeIndex(directory,source,_=>{});var values=new List<double>();

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Add all JellyTag detection categories as named Lowfin-native cover facts: resolutions, HDR variants, 3D, video/audio codecs, channel layouts and language/subtitle codes.
+- Add English dashboard controls for individual categories; stereo stays off by default. Preserve legacy tag masks and existing client compatibility.
+- Persist named facts in the background index, update affected containers and invalidate clients when labels change. Upgrading an old index does not flood the metadata journal.
+- Derive series/season labels from user-visible episodes; use strict DVD majority and highest non-DVD resolution.
+
 ## 0.5.1
 
 - Cover-index progress across scan, per-user summaries and persistence; show progress while waiting for an active background rebuild.

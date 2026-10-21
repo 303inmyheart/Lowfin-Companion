@@ -44,7 +44,7 @@ public sealed class CompanionController(CompanionService service,IUserManager us
     [HttpGet("capabilities")]
     public IActionResult Capabilities() {
         User authenticated; try { authenticated=AuthenticatedUser(); } catch(UnauthorizedAccessException) { return Unauthorized(); }
-        return new JsonResult(new { available=compatibility.Supported,apiVersion=1,pluginVersion="0.5.1",imageBadges=MediaBadges.Settings(Plugin.Instance?.Configuration),jellyfinVersion=compatibility.Version.ToString(),features=compatibility.Supported?new[]{"smartCompletion","persistentResume","longVideoRule","scopedResume","resumeVisibility","explicitOptIn","incrementalCache"}.Concat(providers.Allowed(authenticated)?new[]{"serverProviders"}:Array.Empty<string>()).ToArray():Array.Empty<string>() },Json);
+        return new JsonResult(new { available=compatibility.Supported,apiVersion=1,pluginVersion="0.6.0",imageBadges=MediaBadges.Settings(Plugin.Instance?.Configuration),jellyfinVersion=compatibility.Version.ToString(),features=compatibility.Supported?new[]{"smartCompletion","persistentResume","longVideoRule","scopedResume","resumeVisibility","explicitOptIn","incrementalCache"}.Concat(providers.Allowed(authenticated)?new[]{"serverProviders"}:Array.Empty<string>()).ToArray():Array.Empty<string>() },Json);
     }
     [HttpGet("badges")]
     public Task<IActionResult> Badges([FromQuery]string ids="")=>Run(user=> {
@@ -58,7 +58,7 @@ public sealed class CompanionController(CompanionService service,IUserManager us
         foreach(var id in requested) {
             var item=library.GetItemById(id);
             if(item is not (MediaBrowser.Controller.Entities.Video or Series or Season) || !item.IsVisibleStandalone(user)) continue;
-            var mask=badgeIndex.Get(id,user.Id,scope,item is Series or Season);if(mask.HasValue) items.Add(new { id=id.ToString("N"),mask=mask.Value });else pending=true;
+            var mask=badgeIndex.Get(id,user.Id,scope,item is Series or Season);var labels=badgeIndex.GetLabels(id,user.Id,scope,item is Series or Season);if(mask.HasValue&&labels!=null) items.Add(new { id=id.ToString("N"),mask=mask.Value,tags=labels });else pending=true;
         }
         return Task.FromResult<object>(new { items=items.ToArray(),pending });
     });

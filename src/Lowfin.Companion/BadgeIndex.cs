@@ -5,9 +5,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lowfin.Companion;
 
-public sealed record BadgeIndexItem(Guid Id,int Mask,bool Container,Guid[] Parents);
+public sealed record BadgeIndexItem(Guid Id,int Mask,bool Container,Guid[] Parents,string[]? Labels=null);
 public sealed record BadgeIndexUser(Guid Id,string Scope);
-public sealed record UserBadgeIndex(string Scope,Dictionary<Guid,int> Containers);
+public sealed record UserBadgeIndex(string Scope,Dictionary<Guid,int> Containers,Dictionary<Guid,string[]>? Tags=null);
 public sealed record BadgeIndexState(int Schema,DateTimeOffset FullCheckUtc,DateTimeOffset UpdatedUtc,Dictionary<Guid,BadgeIndexItem> Items,Dictionary<Guid,UserBadgeIndex> Users);
 public interface IBadgeIndexSource {
     int? TotalCount()=>null;
@@ -15,6 +15,7 @@ public interface IBadgeIndexSource {
     BadgeIndexItem? Read(Guid id);
     IReadOnlyList<BadgeIndexUser> Users();
     int Container(Guid item,Guid user);
+    string[] ContainerTags(Guid item,Guid user,IReadOnlyDictionary<Guid,BadgeIndexItem> items,CancellationToken cancellation=default)=>[];
 }
 
 /// <summary>Immutable published snapshots. Only the background worker/job performs library queries.</summary>
@@ -53,6 +54,12 @@ public sealed class BadgeIndex {
         if(entry.Containers.TryGetValue(id,out var mask)) return mask;
         Queue(id);return null;
     }
+    public string[]? GetLabels(Guid id,Guid user,string scope,bool container) {
+        var snapshot=state;if(snapshot==null||!snapshot.Items.TryGetValue(id,out var item)) {Queue(id);return null;}
+        if(!container) {if(item.Labels==null) Queue(id);return item.Labels;}
+        if(!snapshot.Users.TryGetValue(user,out var entry)||entry.Scope!=scope) {QueueUser(user);return null;}
+        if(entry.Tags!=null&&entry.Tags.TryGetValue(id,out var labels)) return labels;Queue(id);return null;
+    }
     public async Task Rebuild(CancellationToken cancellation,IProgress<double>? progress=null) {
         var requestedAt=state;
         bool waiting=false;
@@ -81,12 +88,12 @@ public sealed class BadgeIndex {
             log.LogInformation("Lowfin cover index: {Items} media scanned; computing {Containers} series/season summaries for {Users} users.",items.Count,containerItems.Length,accounts.Count);
             var users=new Dictionary<Guid,UserBadgeIndex>();
             foreach(var user in accounts) {
-                var containers=new Dictionary<Guid,int>();
+                var containers=new Dictionary<Guid,int>();var tags=new Dictionary<Guid,string[]>();
                 foreach(var item in containerItems) {
-                    cancellation.ThrowIfCancellationRequested();containers[item.Id]=source.Container(item.Id,user.Id);completedContainers++;
+                    cancellation.ThrowIfCancellationRequested();containers[item.Id]=source.Container(item.Id,user.Id);tags[item.Id]=ExpandedBadges.Summarize(source.ContainerTags(item.Id,user.Id,items,cancellation),containers[item.Id]);completedContainers++;
                     Report(55+44d*completedContainers/Math.Max(1,work));
                 }
-                users[user.Id]=new(user.Scope,containers);
+                users[user.Id]=new(user.Scope,containers,tags);
             }
             phase="saving";Report(99);
             cancellation.ThrowIfCancellationRequested();
@@ -118,9 +125,10 @@ public sealed class BadgeIndex {
             foreach(var user in source.Users()) {
                 bool rebuild=!before.Users.TryGetValue(user.Id,out var previous)||previous.Scope!=user.Scope;
                 var counts=rebuild?new Dictionary<Guid,int>():new Dictionary<Guid,int>(before.Users[user.Id].Containers);
+                var tags=rebuild?new Dictionary<Guid,string[]>():new Dictionary<Guid,string[]>(previous!.Tags??new());
                 var affected=rebuild?items.Values.Where(x=>x.Container).Select(x=>x.Id):parents;
-                foreach(var id in affected) { cancellation.ThrowIfCancellationRequested();if(items.TryGetValue(id,out var item)&&item.Container) counts[id]=source.Container(id,user.Id);else counts.Remove(id); }
-                users[user.Id]=new(user.Scope,counts);
+                foreach(var id in affected) { cancellation.ThrowIfCancellationRequested();if(items.TryGetValue(id,out var item)&&item.Container) {counts[id]=source.Container(id,user.Id);tags[id]=ExpandedBadges.Summarize(source.ContainerTags(id,user.Id,items,cancellation),counts[id]);}else {counts.Remove(id);tags.Remove(id);} }
+                users[user.Id]=new(user.Scope,counts,tags);
             }
             var next=before with { UpdatedUtc=clock.GetUtcNow(),Items=items,Users=users };
             state=next;if(clock.GetUtcNow()-persistedUtc>=TimeSpan.FromSeconds(30)) Save(next);Notify(before,next);
@@ -136,10 +144,10 @@ public sealed class BadgeIndex {
     private void Notify(BadgeIndexState? before,BadgeIndexState next) {
         if(before==null) return;
         var ids=new HashSet<Guid>();
-        foreach(var item in next.Items.Values) if(!before.Items.TryGetValue(item.Id,out var old)||old.Mask!=item.Mask) ids.Add(item.Id);
+        foreach(var item in next.Items.Values) if(!before.Items.TryGetValue(item.Id,out var old)||old.Mask!=item.Mask||old.Labels!=null&&!old.Labels.SequenceEqual(item.Labels??[])) ids.Add(item.Id);
         foreach(var user in next.Users) {
             if(!before.Users.TryGetValue(user.Key,out var old)) continue;
-            foreach(var value in user.Value.Containers) if(!old.Containers.TryGetValue(value.Key,out var mask)||mask!=value.Value) ids.Add(value.Key);
+            foreach(var value in user.Value.Containers) if(!old.Containers.TryGetValue(value.Key,out var mask)||mask!=value.Value||old.Tags!=null&&old.Tags.TryGetValue(value.Key,out var oldTags)&&!oldTags.SequenceEqual(user.Value.Tags?.GetValueOrDefault(value.Key)??[])) ids.Add(value.Key);
         }
         // Removed IDs already trigger native deletion/reset events; never synthesize a DTO for deleted media.
         if(ids.Count>0) changed(ids);

@@ -12,7 +12,7 @@ folder.mkdir(exist_ok=True)
 shutil.copy2(root/'src/Lowfin.Companion/bin/Release/net10.0/Lowfin.Companion.dll',folder/'Lowfin.Companion.dll')
 shutil.copy2(root/'assets/lowfin-companion.png',folder/'lowfin-companion.png')
 manifest={
-    'category':'General','changelog':'Cover index progress, phase counters, periodic diagnostic logs and reporting while waiting for an active background build.',
+    'category':'General','changelog':'Extended indexed cover tags: resolution, HDR, video/audio formats and language/subtitle codes with dashboard selection.',
     'description':'Per-user completion rules and independent resume positions for Lowfin. Requires Jellyfin 12.2.x.',
     'guid':'68abfd24-882d-4937-a104-44d55181b41e','name':'Lowfin Companion',
     'overview':'Smart Completion, Persistent Resume, Incremental Cache & Cover Tags','owner':'Lowfin','targetAbi':'12.2.0.0',
