@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+artifacts/
+.tools/
+__pycache__/
+*.py[cod]
+*.dll
+*.pdb
+*.zip
+.env
+*.local.json

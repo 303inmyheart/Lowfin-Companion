@@ -1,0 +1,1 @@
+Simplified flat redesign of the previous Companion banner: charcoal background, off-white Lowfin L, two-line Lowfin Companion wordmark, muted lavender accent. No metallic effects, glow, rings or subtitle. Built-in Imagegen edit; original output retained under generated_images.

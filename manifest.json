@@ -1,0 +1,21 @@
+[
+  {
+    "guid": "68abfd24-882d-4937-a104-44d55181b41e",
+    "name": "Lowfin Companion",
+    "owner": "303inmyheart",
+    "category": "General",
+    "overview": "Smart Completion, Persistent Resume, incremental cache and cover tags for Lowfin.",
+    "description": "Optional server companion for Lowfin on Jellyfin 12.2.x.",
+    "imageUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.5.1/lowfin-companion.png",
+    "versions": [
+      {
+        "version": "0.5.1.0",
+        "changelog": "See the source repository CHANGELOG.md for this locally built version.",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.5.1/Lowfin-Companion-0.5.1.zip",
+        "checksum": "0675afb74c2a6ac22f30445713cd7c98",
+        "timestamp": "2026-10-21T14:28:13.730703+00:00"
+      }
+    ]
+  }
+]
