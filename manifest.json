@@ -4,10 +4,18 @@
     "name": "Lowfin Companion",
     "owner": "303inmyheart",
     "category": "General",
-    "overview": "Smart Completion, Persistent Resume, incremental cache and cover tags for Lowfin.",
-    "description": "Optional server companion for Lowfin on Jellyfin 12.2.x.",
-    "imageUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.6.0/lowfin-companion.png",
+    "overview": "Completion, resume, incremental cache, cover tags and Discord presence",
+    "description": "Per-user completion rules and independent resume positions for Lowfin. Requires Jellyfin 12.2 or newer.",
+    "imageUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.7.0/lowfin-companion.png",
     "versions": [
+      {
+        "version": "0.7.0.0",
+        "changelog": "Dashboard sidebar with the original Lowfin L, reorganized settings, optional per-user Discord presence with original-compatible gateway discovery, large READY support, encrypted token storage, original upstream cover rendering/upload/cache, live TV programme timing and no standalone import, plus Jellyfin 12.3 compatibility; minimum server version remains 12.2.",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.7.0/Lowfin-Companion-0.7.0.zip",
+        "checksum": "4f33bde7e32ffee6295a49c93111f174",
+        "timestamp": "2026-10-28T10:53:31.454725+00:00"
+      },
       {
         "version": "0.6.0.0",
         "changelog": "See the source repository CHANGELOG.md for this locally built version.",

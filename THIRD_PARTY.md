@@ -1,3 +1,5 @@
 # Third-party notices
 
 Tag detection categories and codec/profile conventions were informed by JellyTag, part of [Atilil/jellyfin-plugins](https://github.com/Atilil/jellyfin-plugins), copyright 2025 Atilili, MIT licensed. The license is reproduced in [JellyTag-LICENSE.txt](third-party/JellyTag-LICENSE.txt). Lowfin uses its own native text overlays; no JellyTag graphics are bundled.
+
+Discord artwork rendering, upload caching and external-asset registration are adapted from the user-provided original source of [rsbxDev/jellyfin-discord-rpc](https://github.com/rsbxDev/jellyfin-discord-rpc). The original `CoverService`, `ArtworkUploadCache` and `DiscordAssetService` are retained under `Discord/OriginalArtwork`, with Companion namespaces, a separate cache filename, the configurable upload endpoint and redacted URL/response-body logging. Lowfin's surrounding configuration, encrypted token storage, gateway adapter and live-TV features remain separate. See [the source provenance record](third-party/Discord-artwork-source.md). No decompiled standalone sources or standalone plugin binary are distributed. Discord is a third-party service; no affiliation is implied.

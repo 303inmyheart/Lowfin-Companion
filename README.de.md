@@ -1,18 +1,20 @@
-# Lowfin Companion 0.6.0
+# Lowfin Companion 0.7.0
 
-**Dieses Projekt wurde zu 100 % mit KI erstellt — Code, Dokumentation und Gestaltung.**
+**Lowfin-eigener Code, Dokumentation und Gestaltung wurden zu 100 % mit KI erstellt. Zusätzlich enthält diese Version gekennzeichnete Discord-Cover-Komponenten aus dem Originalprojekt.**
 
 <img src="assets/lowfin-companion.png" alt="Lowfin Companion" width="260" />
 
 Eigenständiges Quellcode-Repository: [Lowfin-Companion](https://github.com/303inmyheart/Lowfin-Companion). [English README](README.md).
 
-Optionales Jellyfin-Plugin für **Jellyfin 12.2.x** und Lowfin ab **0.10.0**.
+Optionales Jellyfin-Plugin für **Jellyfin 12.2 oder neuer** und Lowfin ab **0.10.0**.
 Es verwendet Jellyfins normale Benutzeranmeldung. Zusätzliche API-Keys sind nicht nötig.
+
+**Neu in 0.7.0:** Dashboard-Seitenleisteneintrag mit dem originalen Lowfin-L, neu gegliederte Einstellungen und optionale Discord Rich Presence mit Nutzerzuordnung, verschlüsselten Tokens, Original-Cover-Pipeline und Live-TV-Programmdaten. Discord und Bild-Uploads sind standardmäßig ausgeschaltet. Einrichtung und Backup-Hinweise stehen weiter unten.
 
 ## Installation
 
 1. Für manuelle Installation das Release-Paket mit `-manual.zip` verwenden; das Paket ohne diesen Zusatz ist für Jellyfins Katalog-Installer. Jellyfin beenden.
-2. Den gesamten aktuellen Ordner `Lowfin.Companion_0.6.0.0` in Jellyfins bestehenden `plugins`-Ordner kopieren. Die DLL, `meta.json` und `lowfin-companion.png` müssen direkt in diesem Unterordner liegen. Beim Update den bisherigen Lowfin-Companion-Ordner aus `plugins` herausnehmen und als Sicherung aufbewahren, damit nur die neue Version geladen wird. Die separaten Daten unter `lowfin-companion` beibehalten.
+2. Den gesamten aktuellen Ordner `Lowfin.Companion_0.7.0.0` in Jellyfins bestehenden `plugins`-Ordner kopieren. Die DLL, `meta.json` und `lowfin-companion.png` müssen direkt in diesem Unterordner liegen. Beim Update den bisherigen Lowfin-Companion-Ordner aus `plugins` herausnehmen und als Sicherung aufbewahren, damit nur die neue Version geladen wird. Die separaten Daten unter `lowfin-companion` beibehalten.
 3. Sicherstellen, dass der Jellyfin-Prozess die Dateien lesen und seinen Datenordner beschreiben kann.
 4. Jellyfin neu starten. Unter Dashboard → Plugins erscheint **Lowfin Companion** mit dem Bild.
 5. Lowfin neu öffnen. Auf Film- und Folgendetailseiten erscheint **Smart Completion**. Die allgemeine Regel für lange Videos liegt unter Einstellungen → Wiedergabe.
@@ -39,7 +41,7 @@ Die Einstellungen werden in `<Jellyfin-Datenpfad>/lowfin-companion/<Benutzer-ID>
 - Tracearr und andere Tracker verwenden weiterhin ihre eigenen Abschlussregeln. Lowfins Schwellenwerte ändern diese nicht.
 - Ein externer Fortschrittsreset, der exakt denselben nativen Wert erneut schreibt, ist über Jellyfins Ereignisschnittstelle nicht von einem reinen Metadaten-Update unterscheidbar. Der ausdrückliche Companion-Knopf „Fortschritt zurücksetzen“ ist eindeutig.
 - Nach einem mehrdeutigen Fehler bei einer Startmeldung wird ein Start nicht doppelt ausgeführt. Bei einem Serverabsturz genau zwischen Companion-Speicherung und Jellyfin-Verarbeitung kann dadurch eine Startmeldung fehlen. Eine atomare Transaktion über beide Speicher existiert nicht.
-- Neue Jellyfin-Haupt-/Nebenversionen benötigen eine erneute Kompatibilitätsprüfung; außerhalb 12.2 meldet die API sich nicht als verfügbar.
+- Mindestversion ist Jellyfin 12.2; neuere Versionen werden nicht allein aufgrund ihrer Versionsnummer gesperrt. Künftige API-Änderungen können weiterhin eine Anpassung erfordern.
 
 ## Prüfung
 
@@ -123,3 +125,31 @@ python3 tools/make_repository.py --base-url https://DEIN-HOST/lowfin-companion/ 
 ```
 
 Die Host-Adresse im Beispiel ist ein Platzhalter für eigenes Hosting. Der veröffentlichte Feed verwendet öffentliche GitHub-Release-Dateien. Für spätere Updates denselben Ausgabeordner verwenden, damit ältere Versionen im Manifest erhalten bleiben. Das Feed-Paket enthält die DLL direkt an der ZIP-Wurzel, während das manuelle Installationspaket den oben beschriebenen Versionsordner enthält. Das aktuelle Manifest verweist auf die exakten Pakete des jeweiligen GitHub-Releases. Jellyfins Plugin-Aktualisierungsaufgabe übernimmt dann die Prüfung; zum Laden eines Updates ist ein Server-Neustart nötig.
+
+## Dashboard und Discord-Präsenz ab 0.7.0
+
+Der Companion erscheint in der Dashboard-Seitenleiste mit dem originalen Lowfin-L ohne Schriftzug. Ein eingebetteter Font ergänzt genau dieses Symbol über Jellyfins Branding-CSS; vorhandenes eigenes CSS bleibt erhalten. Das Symbol ist abschaltbar. Die Einstellungen sind in Übersicht, Cover-Tags/Index, Bewertungsanbieter, Tracearr und Discord gegliedert.
+
+Discord ist standardmäßig deaktiviert. Der Administrator ordnet Jellyfin-Nutzer explizit Discord-Tokens zu und konfiguriert die Anwendungs-ID. Filme, Folgen, Musik, Bücher und optional Live-TV werden unterstützt. Live-TV zeigt Sender und aktuelle Sendung; gültige EPG-Zeiten liefern die Zeitachse. Ohne Sendungsdaten wird der Sendername wiederholt. Vorhandene Wiedergabemeldungen und Gesehen-Regeln bleiben unverändert.
+
+Diese Betriebsart nutzt einen Discord-Nutzertoken am Gateway und kein offizielles Desktop-RPC. Discord untersagt automatisierte Benutzerkonten. Tokens liegen verschlüsselt in der Server-Plugin-Konfiguration; die Schlüssel werden getrennt im Companion-Datenordner gespeichert. Tests verbinden sich nicht mit echten Discord-Konten.
+
+Discord wird direkt im Companion konfiguriert; eine Standalone-Importfunktion gibt es nicht. Bereits im Companion gespeicherte Zuordnungen bleiben beim Update erhalten. Ein separates Discord-Präsenz-Plugin vor Aktivierung des Companions deaktivieren oder entfernen. Bild-Uploads sind separat zustimmungspflichtig per Option: Erst nach Aktivierung werden quadratische PNGs beziehungsweise unveränderte Originalbilder beim Fallback zum eingestellten HTTPS-Bilddienst und deren öffentliche URLs an Discord gesendet. Ohne Uploads werden nur konfigurierte öffentliche Ersatzbilder verwendet.
+
+Die obere Jellyfin-Versionssperre entfällt; Mindestversion bleibt 12.2. Tests laufen gegen die APIs von 12.2 und 12.3, der isolierte vollständige Server-Ladetest gegen 12.2. Dies ist keine Garantie für beliebige zukünftige API-Änderungen. Das Paketwerkzeug aktualisiert das Repository-Manifest mit URL und MD5 des exakten flachen Installations-ZIPs; ältere Manifest-Versionen bleiben erhalten.
+
+Der Gateway-Verbindungsaufbau entspricht dem bereitgestellten Originalcode: Endpunkt-Erkennung ohne erzwungene v9-Version, passende Client-Header, bis zu 32 MiB große fragmentierte READY-Nachrichten und Senden der vorgemerkten Präsenz nach READY. Discord-Close-Codes und Größenüberschreitungen werden ohne Token oder rohe Gateway-Nachrichten protokolliert.
+
+### Verschlüsselte Discord-Tokens und Backups
+
+Bestehende Klartext-Tokens werden beim Start automatisch migriert. Neue Tokens werden vor dem Speichern mit .NET Data Protection verschlüsselt und an den jeweiligen Jellyfin-Nutzer gebunden. In der Plugin-XML und beim Admin-Konfigurationsabruf steht danach nur der verschlüsselte Wert. Ein leeres Token-Feld behält den gespeicherten Token; zum Ändern einen neuen eingeben, zum Löschen die Zuordnung entfernen. Bei einem Wechsel des zugeordneten Jellyfin-Nutzers ist die erneute Eingabe nötig.
+
+Der dauerhafte Schlüsselring liegt unter `<Jellyfin-Datenordner>/lowfin-companion/secret-keys/` und muss vertraulich mitgesichert werden. Unter Unix ist der Ordner auf 0700 beschränkt; erzeugte Schlüsseldateien erhalten 0600. Container benötigen dafür ein dauerhaftes Datenvolume. Fehlt der Schlüssel, muss er aus dem Backup wiederhergestellt oder der Token erneut eingegeben werden. Nicht entschlüsselbare Werte bleiben erhalten und werden nicht als Discord-Token versendet.
+
+Das schützt vor dem bloßen Auslesen einer kopierten Konfigurationsdatei, nicht vor vollständigem Serverzugriff: Der lokale Schlüsselring ist unter Linux ohne zusätzliches Zertifikat/Masterpasswort nicht selbst verschlüsselt. Wer Konfiguration und Schlüsselring besitzt, kann die Tokens entschlüsseln. Während einer Verbindung muss der Token im Arbeitsspeicher verfügbar sein. Alte Backups mit Klartext-Tokens werden nicht verändert. Niemals echte Konfigurationen oder Schlüssel in Git ablegen.
+
+### Übernommener Cover-Ablauf des Originalprojekts
+
+Für Discord-Cover verwendet der Companion nun `CoverService`, `ArtworkUploadCache` und `DiscordAssetService` aus dem bereitgestellten Originalquellcode von rsbxDev/jellyfin-discord-rpc. Folgen nutzen zuerst das Staffelcover, danach das Seriencover und schließlich das Folgenbild. Lokale Dateien und Bild-URLs werden unterstützt. Das Poster wird proportional auf ein 512 × 512 PNG mit unscharfem Hintergrund gesetzt; falls das Rendern fehlschlägt, wird das Originalbild verwendet. Der Upload deklariert PNG/JPEG passend zu den tatsächlichen Bytes. Erfolgreiche Uploads werden 150 Minuten persistent wiederverwendet, fehlgeschlagene Uploads lösen die ursprüngliche 15-Minuten-Pause aus. Erst danach wird die öffentliche URL bei Discord registriert.
+
+Der Upload-Schalter muss aktiv sein. Fehlende Bilder werden bei laufenden Fortschrittsmeldungen frühestens nach zwei Minuten erneut versucht; unveränderte Bilder erzeugen keine zusätzliche Präsenzmeldung. Bildquelle, Upload-Fehler und erfolgreiche Discord-Registrierung sind nun getrennt im Log erkennbar. Details zur Herkunft stehen in THIRD_PARTY.md.
