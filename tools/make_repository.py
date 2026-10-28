@@ -56,8 +56,8 @@ def generate(base_url, output, dll=None, project=None, image=None):
     versions.sort(key=lambda entry: tuple(int(part) for part in entry['version'].split('.')), reverse=True)
     manifest = [{
         'guid': GUID, 'name': 'Lowfin Companion', 'owner': '303inmyheart', 'category': 'General',
-        'overview': 'Smart Completion, Persistent Resume, incremental cache and cover tags for Lowfin.',
-        'description': 'Optional server companion for Lowfin on Jellyfin 12.2.x.',
+        'overview': 'Smart Completion, Persistent Resume, incremental cache, cover tags and optional Discord presence for Lowfin.',
+        'description': 'Optional server companion for Lowfin on Jellyfin 12.2 or newer.',
         'imageUrl': base + 'lowfin-companion.png', 'versions': versions,
     }]
     manifest_file.write_text(json.dumps(manifest, indent=2) + '\n')
