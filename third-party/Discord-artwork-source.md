@@ -1,6 +1,6 @@
 # Discord artwork source provenance
 
-- Upstream: https://github.com/rsbxDev/jellyfin-discord-rpc
+- Source: components supplied privately for this project.
 - Input: original source archive supplied by the user (`jellyfin-discord-rpc-main.zip`).
 - Archive SHA-256: `6c23de28ff4b1aa5d428a4fcf218f87987bb3e2db0e057952c840071cf08bee7`.
 - Adapted components: `Services/CoverService.cs`, `Services/ArtworkUploadCache.cs`, `Discord/DiscordAssetService.cs` and the image selection/upload orchestration from `PresenceManager`.

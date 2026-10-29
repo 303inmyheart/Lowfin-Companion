@@ -1,6 +1,6 @@
 # Lowfin Companion
 
-**Lowfin-specific code, documentation and design are 100% AI-generated. This release also includes credited upstream Discord artwork components.**
+**Lowfin-specific code, documentation and design are 100% AI-generated. This release also includes adapted Discord artwork components.**
 
 <img src="assets/lowfin-companion.png" alt="Lowfin Companion" width="260" />
 
@@ -18,7 +18,7 @@ Optional server-side companion for [Lowfin](https://github.com/303inmyheart/Lowf
 - **Server-side provider configuration:** OMDb, MDBList, TMDB and Tracearr credentials in the Jellyfin plugin dashboard, with all-user or selected-user access. Lowfin retains its provider/display toggles and local rating-cache setting.
 - **Cover tags:** optional DVD/SD, 5.1 and HDR facts. Lowfin draws the labels in the visible artwork frame; originals and other clients' images stay unchanged. Series/season DVD majority uses available episodes. HDR tags additionally require HDR playback enabled in that Lowfin client.
 - **Persistent tag index:** event-driven changes plus a 24-hour reconciliation task. The index includes progress, phase counters and 15-second diagnostic logs; search the Jellyfin log for `Lowfin cover index`.
-- **Discord Rich Presence (0.7.0):** optional per-user mappings, encrypted token storage, the original upstream artwork pipeline and live-TV channel/programme timing. Disabled by default; configure it in its own dashboard section. See the setup and backup notes below.
+- **Discord Rich Presence (0.7.0):** optional per-user mappings, encrypted token storage, the Discord artwork pipeline and live-TV channel/programme timing. Disabled by default; configure it in its own dashboard section. See the setup and backup notes below.
 - **Dashboard navigation:** a sidebar entry with the original Lowfin L; grouped settings for completion, tags/index, provider access, Tracearr and Discord.
 
 ## Compatibility and limits
@@ -133,8 +133,8 @@ This protects a copied configuration file, not a compromised server: on Linux th
 
 Implementation reference: [Microsoft: Data Protection without DI, persistent keys and at-rest limits](https://learn.microsoft.com/en-us/aspnet/core/security/data-protection/configuration/non-di-scenarios?view=aspnetcore-10.0).
 
-### Original Discord artwork pipeline
+### Discord artwork pipeline
 
-The cover workflow now uses the original upstream `CoverService`, `ArtworkUploadCache` and `DiscordAssetService` from [rsbxDev/jellyfin-discord-rpc](https://github.com/rsbxDev/jellyfin-discord-rpc), rather than Lowfin's previous replacement. Episodes try their season poster, then the series poster, then the episode image. Sources may be local files or image URLs. Posters are centered on a 512 × 512 PNG over a blurred background; composition failure falls back to the raw image. Upload MIME types match PNG/JPEG bytes. Successful uploads are persisted for 150 minutes and shared across episodes with the same source poster; rejected uploads enter the original 15-minute cooldown. Discord receives a registered `mp:external/...` asset, not a Jellyfin-private image URL.
+The Discord artwork workflow combines cover rendering, a persistent upload cache and external-asset registration. Episodes try their season poster, then the series poster, then the episode image. Sources may be local files or image URLs. Posters are centered on a 512 × 512 PNG over a blurred background; composition failure falls back to the raw image. Upload MIME types match PNG/JPEG bytes. Successful uploads are persisted for 150 minutes and shared across episodes with the same source poster; rejected uploads trigger a 15-minute cooldown. Discord receives a registered `mp:external/...` asset, not a Jellyfin-private image URL.
 
 Local cover uploads still require **Upload local cover artwork** to be enabled. The Companion periodically refreshes artwork and retries missing assets at most every two minutes on continuing playback reports. Reusing an unchanged image does not resend the activity. New logs distinguish the selected image source, upload errors and whether Discord accepted an asset. See the source provenance and third-party notices for the adapted components.

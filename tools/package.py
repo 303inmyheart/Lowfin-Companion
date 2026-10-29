@@ -12,7 +12,7 @@ folder.mkdir(exist_ok=True)
 shutil.copy2(root/'src/Lowfin.Companion/bin/Release/net10.0/Lowfin.Companion.dll',folder/'Lowfin.Companion.dll')
 shutil.copy2(root/'assets/lowfin-companion.png',folder/'lowfin-companion.png')
 manifest={
-    'category':'General','changelog':'Dashboard sidebar with the original Lowfin L, reorganized settings, optional per-user Discord presence with original-compatible gateway discovery, large READY support, encrypted token storage, original upstream cover rendering/upload/cache, live TV programme timing and no standalone import, plus Jellyfin 12.3 compatibility; minimum server version remains 12.2.',
+    'category':'General','changelog':'Dashboard sidebar with the original Lowfin L, reorganized settings, optional per-user Discord presence with compatible gateway discovery, large READY support, encrypted token storage, cover rendering, uploads and persistent caching, live TV programme timing and no standalone import, plus Jellyfin 12.3 compatibility; minimum server version remains 12.2.',
     'description':'Per-user completion rules and independent resume positions for Lowfin. Requires Jellyfin 12.2 or newer.',
     'guid':'68abfd24-882d-4937-a104-44d55181b41e','name':'Lowfin Companion',
     'overview':'Completion, resume, incremental cache, cover tags and Discord presence','owner':'Lowfin','targetAbi':'12.2.0.0',

@@ -1,6 +1,6 @@
 # Lowfin Companion 0.7.0
 
-**Lowfin-eigener Code, Dokumentation und Gestaltung wurden zu 100 % mit KI erstellt. Zusätzlich enthält diese Version gekennzeichnete Discord-Cover-Komponenten aus dem Originalprojekt.**
+**Lowfin-eigener Code, Dokumentation und Gestaltung wurden zu 100 % mit KI erstellt. Zusätzlich enthält diese Version angepasste Discord-Cover-Komponenten.**
 
 <img src="assets/lowfin-companion.png" alt="Lowfin Companion" width="260" />
 
@@ -9,7 +9,7 @@ Eigenständiges Quellcode-Repository: [Lowfin-Companion](https://github.com/303i
 Optionales Jellyfin-Plugin für **Jellyfin 12.2 oder neuer** und Lowfin ab **0.10.0**.
 Es verwendet Jellyfins normale Benutzeranmeldung. Zusätzliche API-Keys sind nicht nötig.
 
-**Neu in 0.7.0:** Dashboard-Seitenleisteneintrag mit dem originalen Lowfin-L, neu gegliederte Einstellungen und optionale Discord Rich Presence mit Nutzerzuordnung, verschlüsselten Tokens, Original-Cover-Pipeline und Live-TV-Programmdaten. Discord und Bild-Uploads sind standardmäßig ausgeschaltet. Einrichtung und Backup-Hinweise stehen weiter unten.
+**Neu in 0.7.0:** Dashboard-Seitenleisteneintrag mit dem originalen Lowfin-L, neu gegliederte Einstellungen und optionale Discord Rich Presence mit Nutzerzuordnung, verschlüsselten Tokens, Discord-Cover-Pipeline und Live-TV-Programmdaten. Discord und Bild-Uploads sind standardmäßig ausgeschaltet. Einrichtung und Backup-Hinweise stehen weiter unten.
 
 ## Installation
 
@@ -148,8 +148,8 @@ Der dauerhafte Schlüsselring liegt unter `<Jellyfin-Datenordner>/lowfin-compani
 
 Das schützt vor dem bloßen Auslesen einer kopierten Konfigurationsdatei, nicht vor vollständigem Serverzugriff: Der lokale Schlüsselring ist unter Linux ohne zusätzliches Zertifikat/Masterpasswort nicht selbst verschlüsselt. Wer Konfiguration und Schlüsselring besitzt, kann die Tokens entschlüsseln. Während einer Verbindung muss der Token im Arbeitsspeicher verfügbar sein. Alte Backups mit Klartext-Tokens werden nicht verändert. Niemals echte Konfigurationen oder Schlüssel in Git ablegen.
 
-### Übernommener Cover-Ablauf des Originalprojekts
+### Discord-Cover-Verarbeitung
 
-Für Discord-Cover verwendet der Companion nun `CoverService`, `ArtworkUploadCache` und `DiscordAssetService` aus dem bereitgestellten Originalquellcode von rsbxDev/jellyfin-discord-rpc. Folgen nutzen zuerst das Staffelcover, danach das Seriencover und schließlich das Folgenbild. Lokale Dateien und Bild-URLs werden unterstützt. Das Poster wird proportional auf ein 512 × 512 PNG mit unscharfem Hintergrund gesetzt; falls das Rendern fehlschlägt, wird das Originalbild verwendet. Der Upload deklariert PNG/JPEG passend zu den tatsächlichen Bytes. Erfolgreiche Uploads werden 150 Minuten persistent wiederverwendet, fehlgeschlagene Uploads lösen die ursprüngliche 15-Minuten-Pause aus. Erst danach wird die öffentliche URL bei Discord registriert.
+Für Discord-Cover kombiniert der Companion die Bildaufbereitung mit einem dauerhaften Upload-Cache und der Registrierung externer Bilder bei Discord. Folgen nutzen zuerst das Staffelcover, danach das Seriencover und schließlich das Folgenbild. Lokale Dateien und Bild-URLs werden unterstützt. Das Poster wird proportional auf ein 512 × 512 PNG mit unscharfem Hintergrund gesetzt; falls das Rendern fehlschlägt, wird das Originalbild verwendet. Der Upload deklariert PNG/JPEG passend zu den tatsächlichen Bytes. Erfolgreiche Uploads werden 150 Minuten persistent wiederverwendet, fehlgeschlagene Uploads lösen eine 15-Minuten-Pause aus. Erst danach wird die öffentliche URL bei Discord registriert.
 
 Der Upload-Schalter muss aktiv sein. Fehlende Bilder werden bei laufenden Fortschrittsmeldungen frühestens nach zwei Minuten erneut versucht; unveränderte Bilder erzeugen keine zusätzliche Präsenzmeldung. Bildquelle, Upload-Fehler und erfolgreiche Discord-Registrierung sind nun getrennt im Log erkennbar. Details zur Herkunft stehen in THIRD_PARTY.md.

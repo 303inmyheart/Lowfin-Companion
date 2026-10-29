@@ -1,4 +1,4 @@
-// Adapted from the user-supplied rsbxDev jellyfin-discord-rpc source archive.
+// Adapted from Discord artwork components supplied privately for this project.
 using System;
 using System.Collections.Concurrent;
 using System.Globalization;

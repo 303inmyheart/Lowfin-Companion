@@ -10,7 +10,7 @@
     "versions": [
       {
         "version": "0.7.0.0",
-        "changelog": "Dashboard sidebar with the original Lowfin L, reorganized settings, optional per-user Discord presence with original-compatible gateway discovery, large READY support, encrypted token storage, original upstream cover rendering/upload/cache, live TV programme timing and no standalone import, plus Jellyfin 12.3 compatibility; minimum server version remains 12.2.",
+        "changelog": "Dashboard sidebar with the original Lowfin L, reorganized settings, optional per-user Discord presence with compatible gateway discovery, large READY support, encrypted token storage, cover rendering, uploads and persistent caching, live TV programme timing and no standalone import, plus Jellyfin 12.3 compatibility; minimum server version remains 12.2.",
         "targetAbi": "12.2.0.0",
         "sourceUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.7.0/Lowfin-Companion-0.7.0.zip",
         "checksum": "4f33bde7e32ffee6295a49c93111f174",
