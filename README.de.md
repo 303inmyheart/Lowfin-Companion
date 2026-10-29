@@ -2,6 +2,8 @@
 
 **Lowfin-eigener Code, Dokumentation und Gestaltung wurden zu 100 % mit KI erstellt. Zusätzlich enthält diese Version angepasste Discord-Cover-Komponenten.**
 
+> **Persönlich getestet:** Als Projektbetreiber habe ich alle Funktionen selbst ausgiebig getestet.
+
 <img src="assets/lowfin-companion.png" alt="Lowfin Companion" width="260" />
 
 Eigenständiges Quellcode-Repository: [Lowfin-Companion](https://github.com/303inmyheart/Lowfin-Companion). [English README](README.md).

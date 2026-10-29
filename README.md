@@ -2,6 +2,8 @@
 
 **Lowfin-specific code, documentation and design are 100% AI-generated. This release also includes adapted Discord artwork components.**
 
+> **Personally tested:** As the project owner, I have extensively tested all features myself.
+
 <img src="assets/lowfin-companion.png" alt="Lowfin Companion" width="260" />
 
 Optional server-side companion for [Lowfin](https://github.com/303inmyheart/Lowfin), designed for **Jellyfin 12.2 or newer**. Current plugin version: **0.7.0**. The Android TV client works independently when the plugin is absent.
