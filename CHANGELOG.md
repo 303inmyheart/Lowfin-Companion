@@ -2,11 +2,13 @@
 
 ## 0.7.0
 
+- Use neutral Discord artwork documentation and remove personal references and private repository links.
+
 - Add a dashboard sidebar entry with the original Lowfin L and an optional, single-glyph branding font. Preserve existing custom CSS.
 - Reorganize English dashboard settings into overview, cover tags/index, rating providers, Tracearr and Discord sections.
 - Add optional per-user Discord presence for movies, episodes, music, books and live TV, including current programme names and valid EPG time bars. Add configurable templates, throttling, cleanup, link buttons and optional artwork uploads. Configure mappings directly; no standalone import.
-- Align the Discord transport with the supplied original source: unversioned discovered gateway URL, client headers, fragmented READY messages up to 32 MiB, queued presence replay, explicit close-code logs and terminal authentication failure handling. Omit null optional fields, use zero for presence `since`, resolve paused artwork, and send pause/resume transitions immediately.
-- Replace the previous artwork implementation with the original upstream cover renderer, persistent upload cache and Discord asset service. Restore local/remote sources, 512px PNG composition, raw-image fallback, correct multipart MIME types and upload reuse across episodes/restarts. Add bounded missing-image retries and diagnostic stages.
+- Improve Discord transport compatibility: unversioned discovered gateway URL, client headers, fragmented READY messages up to 32 MiB, queued presence replay, explicit close-code logs and terminal authentication failure handling. Omit null optional fields, use zero for presence `since`, resolve paused artwork, and send pause/resume transitions immediately.
+- Integrate cover rendering, a persistent upload cache and Discord asset registration. Restore local/remote sources, 512px PNG composition, raw-image fallback, correct multipart MIME types and upload reuse across episodes/restarts. Add bounded missing-image retries and diagnostic stages.
 - Encrypt Discord tokens at rest using a persistent, user-bound Data Protection key ring. Migrate old mappings, retain tokens when fields stay blank, avoid plaintext token echo, preserve encrypted values when keys are unavailable and document backup/security limits.
 - Keep Discord integration and artwork uploads off by default; preserve ordinary Jellyfin playback/completion reporting.
 - Remove the upper Jellyfin minor-version gate that disabled capabilities and cover tags on 12.3; retain the 12.2 minimum. Test against both 12.2 and 12.3 API packages.
