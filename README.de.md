@@ -13,6 +13,14 @@ Es verwendet Jellyfins normale Benutzeranmeldung. Zusätzliche API-Keys sind nic
 
 **Neu in 0.7.0:** Dashboard-Seitenleisteneintrag mit dem originalen Lowfin-L, neu gegliederte Einstellungen und optionale Discord Rich Presence mit Nutzerzuordnung, verschlüsselten Tokens, Discord-Cover-Pipeline und Live-TV-Programmdaten. Discord und Bild-Uploads sind standardmäßig ausgeschaltet. Einrichtung und Backup-Hinweise stehen weiter unten.
 
+## Inspirationen für die Funktionen
+
+- **Discord RPC:** inspiriert von den Scripts aus [kennethsible/jellyfin-rpc](https://github.com/kennethsible/jellyfin-rpc).
+- **Auflösungs- und Audiobanner:** inspiriert von [JellyTag](https://github.com/Atilil/jellyfin-plugins/tree/main/Jellytag).
+- **Bewertungen:** inspiriert von [TMDb Helper](https://github.com/jurialmunkey/plugin.video.themoviedb.helper).
+
+Diese Verweise beschreiben die Inspiration für die Funktionen. Übernommene Komponenten und deren Herkunft sind zusätzlich in [THIRD_PARTY.md](THIRD_PARTY.md) dokumentiert. Der Companion ergänzt seine eigene Jellyfin-Anbindung, Konfiguration und native Darstellung in Lowfin.
+
 ## Installation
 
 1. Für manuelle Installation das Release-Paket mit `-manual.zip` verwenden; das Paket ohne diesen Zusatz ist für Jellyfins Katalog-Installer. Jellyfin beenden.

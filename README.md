@@ -12,6 +12,14 @@ Optional server-side companion for [Lowfin](https://github.com/303inmyheart/Lowf
 
 [Changelog](CHANGELOG.md) · [Releases](https://github.com/303inmyheart/Lowfin-Companion/releases)
 
+## Feature inspirations
+
+- **Discord RPC:** inspired by scripts from [kennethsible/jellyfin-rpc](https://github.com/kennethsible/jellyfin-rpc).
+- **Resolution and audio banners:** inspired by [JellyTag](https://github.com/Atilil/jellyfin-plugins/tree/main/Jellytag).
+- **Ratings:** inspired by [TMDb Helper](https://github.com/jurialmunkey/plugin.video.themoviedb.helper).
+
+These references describe feature inspiration. Adapted components and their provenance are documented separately in [THIRD_PARTY.md](THIRD_PARTY.md); the Companion has its own Jellyfin integration, configuration and native Lowfin presentation.
+
 ## Features
 
 - **Smart Completion:** per-user, per-movie/episode rules: Jellyfin default, custom percentage, remaining time or never auto-complete. Existing Jellyfin global thresholds stay unchanged. Only an explicitly selected rule or enabled long-video rule activates Companion processing.
