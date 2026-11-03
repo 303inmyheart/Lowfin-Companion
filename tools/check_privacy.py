@@ -9,7 +9,7 @@ failures=[]
 def check(data,name,depth=0):
  if Path(name).name.lower()=='drawer-hd.png':failures.append(name);return
  if Path(name).suffix.lower() in IMAGE:return
- if zipfile.is_zipfile(io.BytesIO(data)) and depth<4 and not name.endswith(('.apk','.aab')):
+ if zipfile.is_zipfile(io.BytesIO(data)) and depth<4:
   with zipfile.ZipFile(io.BytesIO(data)) as z:
    for n in z.infolist():
     if not n.is_dir():check(z.read(n),name+'!'+n.filename,depth+1)
