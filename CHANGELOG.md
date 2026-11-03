@@ -2,6 +2,8 @@
 
 ## 0.7.0
 
+- Build with neutral deterministic debug paths and anonymize public test/documentation data; preserve plugin identifiers, state formats and versions.
+
 - Use neutral Discord artwork documentation and remove personal references and private repository links.
 
 - Add a dashboard sidebar entry with the original Lowfin L and an optional, single-glyph branding font. Preserve existing custom CSS.
