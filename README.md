@@ -6,11 +6,13 @@
 
 <img src="assets/lowfin-companion.png" alt="Lowfin Companion" width="260" />
 
-Optional server-side companion for [Lowfin](https://github.com/303inmyheart/Lowfin), designed for **Jellyfin 12.2 or newer**. Current plugin version: **0.7.0**. The Android TV client works independently when the plugin is absent.
+Optional server-side companion for [Lowfin](https://github.com/303inmyheart/Lowfin), designed for **Jellyfin 12.2 or newer**. Current plugin version: **0.7.1**. The Android TV client works independently when the plugin is absent.
 
 [Deutsche Anleitung](README.de.md)
 
 [Changelog](CHANGELOG.md) · [Releases](https://github.com/303inmyheart/Lowfin-Companion/releases)
+
+> **0.7.1:** Up to 250,000 retained library changes, a larger pending-event queue and durable incremental journal/checkpoint recovery. Existing cache cursors migrate without a forced epoch change.
 
 ## Feature inspirations
 
@@ -24,7 +26,7 @@ These references describe feature inspiration. Adapted components and their prov
 
 - **Smart Completion:** per-user, per-movie/episode rules: Jellyfin default, custom percentage, remaining time or never auto-complete. Existing Jellyfin global thresholds stay unchanged. Only an explicitly selected rule or enabled long-video rule activates Companion processing.
 - **Persistent Resume:** independent resume positions, playback sequence/order checks, and fences for manual watched/reset actions. The same Jellyfin user's selected rules apply across Lowfin devices.
-- **Incremental library cache:** a persistent change journal lets Lowfin update changed metadata and artwork instead of rebuilding the completed library cache. Library permissions and resume exclusions remain respected.
+- **Incremental library cache:** a persistent change journal retaining up to **250,000 changes** lets Lowfin update changed metadata and artwork instead of rebuilding the completed library cache. Library permissions and resume exclusions remain respected.
 - **Server-side provider configuration:** OMDb, MDBList, TMDB and Tracearr credentials in the Jellyfin plugin dashboard, with all-user or selected-user access. Lowfin retains its provider/display toggles and local rating-cache setting.
 - **Cover tags:** optional DVD/SD, 5.1 and HDR facts. Lowfin draws the labels in the visible artwork frame; originals and other clients' images stay unchanged. Series/season DVD majority uses available episodes. HDR tags additionally require HDR playback enabled in that Lowfin client.
 - **Persistent tag index:** event-driven changes plus a 24-hour reconciliation task. The index includes progress, phase counters and 15-second diagnostic logs; search the Jellyfin log for `Lowfin cover index`.
@@ -43,7 +45,7 @@ Download the locally built package from [GitHub releases](https://github.com/303
 
 1. Download the `-manual.zip` release asset, or build and package locally (see below). The unsuffixed ZIP is the flat package used by Jellyfin’s repository installer.
 2. Stop Jellyfin.
-3. Extract `Lowfin-Companion-0.7.0-manual.zip` and copy its entire `Lowfin.Companion_0.7.0.0` directory into Jellyfin's plugin directory. DLL, `meta.json` and image must be directly inside that versioned directory.
+3. Extract `Lowfin-Companion-0.7.1-manual.zip` and copy its entire `Lowfin.Companion_0.7.1.0` directory into Jellyfin's plugin directory. DLL, `meta.json` and image must be directly inside that versioned directory.
 4. Move the previous Companion plugin directory out of `plugins` as a backup, so only one version loads. Preserve the separate `lowfin-companion` data directory.
 5. Start Jellyfin and open Dashboard → Plugins → Lowfin Companion. Configure providers/user access and optional tags there, then reopen Lowfin.
 
@@ -90,7 +92,7 @@ The normal manual-install ZIP uses a versioned outer directory; the feed ZIP del
 
 ## Data and diagnostics
 
-Persistent plugin data lives below `<Jellyfin data directory>/lowfin-companion/`, including per-user completion/resume files, the change journal and `badge-index.json`. Include this directory and the Jellyfin plugin configuration in server backups. Uninstalling the plugin does not automatically erase these files.
+Persistent plugin data lives below `<Jellyfin data directory>/lowfin-companion/`, including per-user completion/resume files, the change journal (`cache-journal.json` and `cache-journal.wal`) and `badge-index.json`. Include this directory and the Jellyfin plugin configuration in server backups. Uninstalling the plugin does not automatically erase these files.
 
 Index status is available in the admin-only plugin dashboard/status endpoint. Existing snapshots stay usable during rebuilding, cancellation or failures. Provider secrets are admin-configured and are not returned to ordinary Lowfin users.
 
@@ -148,3 +150,5 @@ Implementation reference: [Microsoft: Data Protection without DI, persistent key
 The Discord artwork workflow combines cover rendering, a persistent upload cache and external-asset registration. Episodes try their season poster, then the series poster, then the episode image. Sources may be local files or image URLs. Posters are centered on a 512 × 512 PNG over a blurred background; composition failure falls back to the raw image. Upload MIME types match PNG/JPEG bytes. Successful uploads are persisted for 150 minutes and shared across episodes with the same source poster; rejected uploads trigger a 15-minute cooldown. Discord receives a registered `mp:external/...` asset, not a Jellyfin-private image URL.
 
 Local cover uploads still require **Upload local cover artwork** to be enabled. The Companion periodically refreshes artwork and retries missing assets at most every two minutes on continuing playback reports. Reusing an unchanged image does not resend the activity. New logs distinguish the selected image source, upload errors and whether Discord accepted an asset. See the source provenance and third-party notices for the adapted components.
+
+The enlarged journal uses append-only checked records and periodic atomic checkpoints. Existing journals keep their epoch and retained entries on upgrade; changes already removed by older versions cannot be recovered. Client requests copy only a small page. Retention is count-based, not a guarantee of a number of days; restarts, permission changes and missing history can still require a reported history-gap reset.

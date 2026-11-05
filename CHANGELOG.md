@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- Increase retained library changes from 4,096 to 250,000. Append checksummed durable records, checkpoint periodically, migrate the existing snapshot without replacing its cursor epoch, recover incomplete unacknowledged tails and return bounded pages without copying the complete history for each request.
+- Increase the short-lived event queue to 32,768 unique pending items; retain explicit gap detection for overflow, restarts and access changes.
+
 ## 0.7.0
 
 - Build with neutral deterministic debug paths and anonymize public test/documentation data; preserve plugin identifiers, state formats and versions.

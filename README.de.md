@@ -1,4 +1,4 @@
-# Lowfin Companion 0.7.0
+# Lowfin Companion 0.7.1
 
 **Lowfin-eigener Code, Dokumentation und Gestaltung wurden zu 100 % mit KI erstellt. Zusätzlich enthält diese Version angepasste Discord-Cover-Komponenten.**
 
@@ -10,6 +10,8 @@ Eigenständiges Quellcode-Repository: [Lowfin-Companion](https://github.com/303i
 
 Optionales Jellyfin-Plugin für **Jellyfin 12.2 oder neuer** und Lowfin ab **0.10.0**.
 Es verwendet Jellyfins normale Benutzeranmeldung. Zusätzliche API-Keys sind nicht nötig.
+
+**Neu in 0.7.1:** Bis zu 250.000 gespeicherte Bibliotheksänderungen, eine größere Ereigniswarteschlange und ein dauerhaftes Änderungsjournal mit Prüfsummen, Checkpoints und Wiederherstellung. Bestehende Cache-Cursor werden übernommen.
 
 **Neu in 0.7.0:** Dashboard-Seitenleisteneintrag mit dem originalen Lowfin-L, neu gegliederte Einstellungen und optionale Discord Rich Presence mit Nutzerzuordnung, verschlüsselten Tokens, Discord-Cover-Pipeline und Live-TV-Programmdaten. Discord und Bild-Uploads sind standardmäßig ausgeschaltet. Einrichtung und Backup-Hinweise stehen weiter unten.
 
@@ -24,7 +26,7 @@ Diese Verweise beschreiben die Inspiration für die Funktionen. Übernommene Kom
 ## Installation
 
 1. Für manuelle Installation das Release-Paket mit `-manual.zip` verwenden; das Paket ohne diesen Zusatz ist für Jellyfins Katalog-Installer. Jellyfin beenden.
-2. Den gesamten aktuellen Ordner `Lowfin.Companion_0.7.0.0` in Jellyfins bestehenden `plugins`-Ordner kopieren. Die DLL, `meta.json` und `lowfin-companion.png` müssen direkt in diesem Unterordner liegen. Beim Update den bisherigen Lowfin-Companion-Ordner aus `plugins` herausnehmen und als Sicherung aufbewahren, damit nur die neue Version geladen wird. Die separaten Daten unter `lowfin-companion` beibehalten.
+2. Den gesamten aktuellen Ordner `Lowfin.Companion_0.7.1.0` in Jellyfins bestehenden `plugins`-Ordner kopieren. Die DLL, `meta.json` und `lowfin-companion.png` müssen direkt in diesem Unterordner liegen. Beim Update den bisherigen Lowfin-Companion-Ordner aus `plugins` herausnehmen und als Sicherung aufbewahren, damit nur die neue Version geladen wird. Die separaten Daten unter `lowfin-companion` beibehalten.
 3. Sicherstellen, dass der Jellyfin-Prozess die Dateien lesen und seinen Datenordner beschreiben kann.
 4. Jellyfin neu starten. Unter Dashboard → Plugins erscheint **Lowfin Companion** mit dem Bild.
 5. Lowfin neu öffnen. Auf Film- und Folgendetailseiten erscheint **Smart Completion**. Die allgemeine Regel für lange Videos liegt unter Einstellungen → Wiedergabe.
@@ -163,3 +165,5 @@ Das schützt vor dem bloßen Auslesen einer kopierten Konfigurationsdatei, nicht
 Für Discord-Cover kombiniert der Companion die Bildaufbereitung mit einem dauerhaften Upload-Cache und der Registrierung externer Bilder bei Discord. Folgen nutzen zuerst das Staffelcover, danach das Seriencover und schließlich das Folgenbild. Lokale Dateien und Bild-URLs werden unterstützt. Das Poster wird proportional auf ein 512 × 512 PNG mit unscharfem Hintergrund gesetzt; falls das Rendern fehlschlägt, wird das Originalbild verwendet. Der Upload deklariert PNG/JPEG passend zu den tatsächlichen Bytes. Erfolgreiche Uploads werden 150 Minuten persistent wiederverwendet, fehlgeschlagene Uploads lösen eine 15-Minuten-Pause aus. Erst danach wird die öffentliche URL bei Discord registriert.
 
 Der Upload-Schalter muss aktiv sein. Fehlende Bilder werden bei laufenden Fortschrittsmeldungen frühestens nach zwei Minuten erneut versucht; unveränderte Bilder erzeugen keine zusätzliche Präsenzmeldung. Bildquelle, Upload-Fehler und erfolgreiche Discord-Registrierung sind nun getrennt im Log erkennbar. Details zur Herkunft stehen in THIRD_PARTY.md.
+
+Der inkrementelle Änderungsverlauf speichert bis zu **250.000 Änderungen**. Neue Einträge werden mit Prüfsumme angehängt und gelegentlich in einen atomaren Prüfstand übernommen. Die bisherigen Einträge und der Cursor bleiben beim Update erhalten; bereits früher entfernte Änderungen können nicht wiederhergestellt werden. Für Backups `cache-journal.json` und `cache-journal.wal` zusammen sichern. Die Aufbewahrung richtet sich nach der Anzahl, nicht nach Tagen; Neustarts, Rechteänderungen und Verlaufslücken können weiterhin eine gemeldete Unterbrechung auslösen.

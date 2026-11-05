@@ -27,12 +27,12 @@ public sealed class CacheFeed(CacheJournal journal,ILibraryManager library,ILogg
         // Moves and removals need an authoritative reconciliation: event args do not expose the previous visibility.
         // Ordinary metadata edits are the common cheap incremental path.
         if(removed) { Interlocked.Exchange(ref reset,1); return; }
-        if(pending.Count>=4096) { Interlocked.Exchange(ref reset,1); return; }
+        if(pending.Count>=32768) { Interlocked.Exchange(ref reset,1); return; }
         pending[args.Item.Id]=new(0,args.Item.Id,false,[]);
     }
     public void NotifyBadgeChanges(IReadOnlyCollection<Guid> ids) {
         foreach(var id in ids) {
-            if(pending.Count>=4096) { Interlocked.Exchange(ref reset,1);break; }
+            if(pending.Count>=32768) { Interlocked.Exchange(ref reset,1);break; }
             pending[id]=new(0,id,false,[]);
         }
     }

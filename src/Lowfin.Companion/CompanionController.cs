@@ -44,7 +44,7 @@ public sealed class CompanionController(CompanionService service,IUserManager us
     [HttpGet("capabilities")]
     public IActionResult Capabilities() {
         User authenticated; try { authenticated=AuthenticatedUser(); } catch(UnauthorizedAccessException) { return Unauthorized(); }
-        return new JsonResult(new { available=compatibility.Supported,apiVersion=1,pluginVersion="0.7.0",imageBadges=MediaBadges.Settings(Plugin.Instance?.Configuration),jellyfinVersion=compatibility.Version.ToString(),features=compatibility.Supported?new[]{"smartCompletion","persistentResume","longVideoRule","scopedResume","resumeVisibility","explicitOptIn","incrementalCache"}.Concat(providers.Allowed(authenticated)?new[]{"serverProviders"}:Array.Empty<string>()).ToArray():Array.Empty<string>() },Json);
+        return new JsonResult(new { available=compatibility.Supported,apiVersion=1,pluginVersion="0.7.1",imageBadges=MediaBadges.Settings(Plugin.Instance?.Configuration),jellyfinVersion=compatibility.Version.ToString(),features=compatibility.Supported?new[]{"smartCompletion","persistentResume","longVideoRule","scopedResume","resumeVisibility","explicitOptIn","incrementalCache"}.Concat(providers.Allowed(authenticated)?new[]{"serverProviders"}:Array.Empty<string>()).ToArray():Array.Empty<string>() },Json);
     }
     [HttpGet("badges")]
     public Task<IActionResult> Badges([FromQuery]string ids="")=>Run(user=> {
@@ -85,12 +85,12 @@ public sealed class CompanionController(CompanionService service,IUserManager us
     [HttpGet("cache/changes")]
     public Task<IActionResult> Cache([FromQuery]string? cursor=null,[FromQuery]int waitSeconds=0,[FromQuery]int limit=8) => Run(async user=> {
         if(limit<1||limit>20||waitSeconds<0||waitSeconds>20) throw new ArgumentException("Invalid cache request limits.");
-        var previous=CacheFeed.Parse(cursor); var snapshot=cache.Journal.Snapshot(); string scope=cache.Scope(user);
+        var previous=CacheFeed.Parse(cursor); var snapshot=cache.Journal.Snapshot(previous?.After??0,limit); string scope=cache.Scope(user);
         if(!string.IsNullOrEmpty(cursor)&&(previous==null||previous.Scope!=scope||CacheJournal.Expired(snapshot,previous.Epoch,previous.After)))
             return new { reset=true,cursor=CacheFeed.Cursor(snapshot,snapshot.Head,scope),changes=Array.Empty<object>(),more=false };
         if(previous==null) return new { reset=false,cursor=CacheFeed.Cursor(snapshot,snapshot.Head,scope),changes=Array.Empty<object>(),more=false };
         await cache.Journal.Wait(previous.After,waitSeconds,HttpContext.RequestAborted).ConfigureAwait(false);
-        user=users.GetUserById(user.Id)??throw new UnauthorizedAccessException(); scope=cache.Scope(user); snapshot=cache.Journal.Snapshot();
+        user=users.GetUserById(user.Id)??throw new UnauthorizedAccessException(); scope=cache.Scope(user); snapshot=cache.Journal.Snapshot(previous.After,limit);
         if(previous.Scope!=scope||CacheJournal.Expired(snapshot,previous.Epoch,previous.After))
             return new { reset=true,cursor=CacheFeed.Cursor(snapshot,snapshot.Head,scope),changes=Array.Empty<object>(),more=false };
         var page=snapshot.Changes.Where(x=>x.Sequence>previous.After).Take(limit).ToArray();
