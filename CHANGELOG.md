@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2
+
+- Add a default-on background/AFK mode for Discord presence so playback does not continually report an active desktop session. Include the initial presence during gateway identification and keep inactivity timestamps stable. Default new configurations to Online, preserve saved status choices, and apply presence-policy changes on the next playback event without waiting for a seek or artwork refresh. Notification delivery remains controlled by Discord.
+
+- Verify Online, Idle, Do Not Disturb and Invisible mappings through dashboard load/save and real loopback gateway messages, with background mode both enabled and disabled. Clear stopped presence without advertising an active session.
+
 ## 0.7.1
 
 - Increase retained library changes from 4,096 to 250,000. Append checksummed durable records, checkpoint periodically, migrate the existing snapshot without replacing its cursor epoch, recover incomplete unacknowledged tails and return bounded pages without copying the complete history for each request.

@@ -6,8 +6,16 @@
     "category": "General",
     "overview": "Completion, resume, incremental cache, cover tags and Discord presence",
     "description": "Per-user completion rules and independent resume positions for Lowfin. Requires Jellyfin 12.2 or newer.",
-    "imageUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.7.1/lowfin-companion.png",
+    "imageUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.7.2/lowfin-companion.png",
     "versions": [
+      {
+        "version": "0.7.2.0",
+        "changelog": "- Add a default-on background/AFK mode for Discord presence so playback does not continually report an active desktop session. Include the initial presence during gateway identification and keep inactivity timestamps stable. Default new configurations to Online, preserve saved status choices, and apply presence-policy changes on the next playback event without waiting for a seek or artwork refresh. Notification delivery remains controlled by Discord.\n\n- Verify Online, Idle, Do Not Disturb and Invisible mappings through dashboard load/save and real loopback gateway messages, with background mode both enabled and disabled. Clear stopped presence without advertising an active session.",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://github.com/303inmyheart/Lowfin-Companion/releases/download/v0.7.2/Lowfin-Companion-0.7.2.zip",
+        "checksum": "0344b8025b6f78855aa39d1ac906fd08",
+        "timestamp": "2026-11-09T19:20:43.072226+00:00"
+      },
       {
         "version": "0.7.1.0",
         "changelog": "Retain 250,000 incremental library changes and 32,768 queued item events. Durable checksummed append records, periodic atomic checkpoints, bounded-page reads, existing-cursor migration and incomplete-tail recovery preserve efficient offline catch-up.",

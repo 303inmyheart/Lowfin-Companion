@@ -18,6 +18,14 @@ public sealed class DiscordTests {
         var options=new DiscordOptions();Assert.False(options.Enabled);Assert.False(options.UploadArtwork);Assert.Null(options.User(Guid.NewGuid()));
         var id=Guid.NewGuid();options.Users=[new(){JellyfinUserId=id.ToString("N"),DiscordToken="fake",Enabled=false}];Assert.Null(options.User(id));options.Users[0].Enabled=true;Assert.NotNull(options.User(id));Assert.Null(options.User(Guid.NewGuid()));
     }
+    [Fact] public void BackgroundDefaultsDoNotOverwriteSavedStatusOrAnExplicitOptOut() {
+        var defaults=new DiscordOptions();Assert.Equal("online",defaults.OnlineStatus);Assert.True(defaults.AllowMobileNotifications);
+        var serializer=new System.Xml.Serialization.XmlSerializer(typeof(DiscordOptions));
+        using var legacy=new StringReader("<PluginConfiguration><OnlineStatus>dnd</OnlineStatus></PluginConfiguration>");
+        var migrated=(DiscordOptions)serializer.Deserialize(legacy)!;Assert.Equal("dnd",migrated.OnlineStatus);Assert.True(migrated.AllowMobileNotifications);
+        using var saved=new StringReader("<PluginConfiguration><OnlineStatus>idle</OnlineStatus><AllowMobileNotifications>false</AllowMobileNotifications></PluginConfiguration>");
+        var optedOut=(DiscordOptions)serializer.Deserialize(saved)!;Assert.Equal("idle",optedOut.OnlineStatus);Assert.False(optedOut.AllowMobileNotifications);
+    }
     [Fact] public void MovieEpisodeTemplatesLinksAndPauseKeepExpectedPayload() {
         var movie=new Movie {Name="Film",RunTimeTicks=TimeSpan.FromHours(2).Ticks,ProductionYear=2026,Genres=["Drama"]};movie.ProviderIds["Imdb"]="tt123";movie.ProviderIds["Tmdb"]="456";
         var options=new DiscordOptions {ApplicationId="123",ShowLinkButton=true};var result=DiscordActivity.Build(movie,TimeSpan.FromMinutes(5).Ticks,false,options,Now);
@@ -35,6 +43,29 @@ public sealed class DiscordTests {
     private sealed class FakeGateway : IDiscordGateway {public ConcurrentQueue<JsonObject> Updates=new();public bool Closed;public void Update(JsonObject value)=>Updates.Enqueue(value);public ValueTask DisposeAsync(){Closed=true;return ValueTask.CompletedTask;}}
     private sealed class Factory : IDiscordGatewayFactory {public ConcurrentBag<FakeGateway> Connections=new();public string? LastToken;public IDiscordGateway Create(string token){LastToken=token;var value=new FakeGateway();Connections.Add(value);return value;}}
     private static async Task Wait(Func<bool> condition){for(int n=0;n<200&&!condition();n++)await Task.Delay(10);Assert.True(condition());}
+    [Theory][InlineData("online")][InlineData("idle")][InlineData("dnd")][InlineData("invisible")]
+    public async Task ConfiguredStatusIsForwardedIndependentlyOfBackgroundMode(string status) {
+        var user=new User("status-test","auth","reset"){Id=Guid.NewGuid()};var options=new DiscordOptions {Enabled=true,ApplicationId="123",OnlineStatus=status,Users=[new(){JellyfinUserId=user.Id.ToString(),DiscordToken="fake-test-token"}]};
+        var playback=new Mock<ISessionManager>();var library=new Mock<ILibraryManager>();var users=new Mock<IUserManager>();var factory=new Factory();var clients=new Mock<IHttpClientFactory>();clients.Setup(x=>x.CreateClient(It.IsAny<string>())).Returns(()=>new HttpClient());
+        using var service=new DiscordService(playback.Object,library.Object,users.Object,factory,new DiscordArtwork(library.Object,clients.Object),NullLogger<DiscordService>.Instance,()=>options);await service.StartAsync(default);
+        try {playback.Raise(x=>x.PlaybackStart+=null,new PlaybackProgressEventArgs {Users=[user],Item=new Movie {Id=Guid.NewGuid(),Name="Film"}});await Wait(()=>factory.Connections.Count==1&&factory.Connections.First().Updates.Count==1);var sent=factory.Connections.First().Updates.Last();Assert.Equal(status,sent["status"]!.GetValue<string>());Assert.True(sent["afk"]!.GetValue<bool>());}
+        finally {await service.StopAsync(default);}
+    }
+    [Fact] public async Task BackgroundPresenceKeepsItsIdleTimeAndAppliesPolicyChangesWithoutASeek() {
+        var user=new User("background-test","auth","reset"){Id=Guid.NewGuid()};var options=new DiscordOptions {Enabled=true,ApplicationId="123",OnlineStatus="dnd",Users=[new(){JellyfinUserId=user.Id.ToString(),DiscordToken="fake-test-token"}]};
+        var playback=new Mock<ISessionManager>();var library=new Mock<ILibraryManager>();var users=new Mock<IUserManager>();var factory=new Factory();var clients=new Mock<IHttpClientFactory>();clients.Setup(x=>x.CreateClient(It.IsAny<string>())).Returns(()=>new HttpClient());var clock=new Clock();
+        using var service=new DiscordService(playback.Object,library.Object,users.Object,factory,new DiscordArtwork(library.Object,clients.Object),NullLogger<DiscordService>.Instance,()=>options,clock);await service.StartAsync(default);
+        var movie=new Movie {Id=Guid.NewGuid(),Name="Film",RunTimeTicks=TimeSpan.FromHours(1).Ticks};
+        try {
+            playback.Raise(x=>x.PlaybackStart+=null,new PlaybackProgressEventArgs {Users=[user],Item=movie});await Wait(()=>factory.Connections.Count==1&&factory.Connections.First().Updates.Count==1);var gateway=factory.Connections.First();
+            var first=gateway.Updates.Last();Assert.True(first["afk"]!.GetValue<bool>());Assert.Equal("dnd",first["status"]!.GetValue<string>());long since=first["since"]!.GetValue<long>();Assert.Equal(Now.ToUnixTimeMilliseconds(),since);
+            clock.Now=clock.Now.AddSeconds(1);playback.Raise(x=>x.PlaybackProgress+=null,new PlaybackProgressEventArgs {Users=[user],Item=movie,IsPaused=true});await Wait(()=>gateway.Updates.Count==2);Assert.Equal(since,gateway.Updates.Last()["since"]!.GetValue<long>());
+            options.AllowMobileNotifications=false;options.OnlineStatus="online";
+            playback.Raise(x=>x.PlaybackProgress+=null,new PlaybackProgressEventArgs {Users=[user],Item=movie,IsPaused=true});await Wait(()=>gateway.Updates.Count==3);Assert.False(gateway.Updates.Last()["afk"]!.GetValue<bool>());Assert.Null(gateway.Updates.Last()["since"]);Assert.Equal("online",gateway.Updates.Last()["status"]!.GetValue<string>());
+            options.AllowMobileNotifications=true;clock.Now=clock.Now.AddSeconds(1);
+            playback.Raise(x=>x.PlaybackProgress+=null,new PlaybackProgressEventArgs {Users=[user],Item=movie,IsPaused=true});await Wait(()=>gateway.Updates.Count==4);Assert.True(gateway.Updates.Last()["afk"]!.GetValue<bool>());Assert.Equal(clock.Now.ToUnixTimeMilliseconds(),gateway.Updates.Last()["since"]!.GetValue<long>());
+        }finally {await service.StopAsync(default);}
+    }
     [Fact] public async Task LifecycleUsesOnlyMappedUsersAndClearsStopAndDisabledConfiguration() {
         var user=new User("rpc-test","auth","reset"){Id=Guid.NewGuid()};var other=new User("other","auth","reset"){Id=Guid.NewGuid()};var options=new DiscordOptions {Enabled=true,ApplicationId="123",Users=[new(){JellyfinUserId=user.Id.ToString(),DiscordToken="fake-test-token"}]};
         var playback=new Mock<ISessionManager>();var library=new Mock<ILibraryManager>();var users=new Mock<IUserManager>();var factory=new Factory();var clients=new Mock<IHttpClientFactory>();clients.Setup(x=>x.CreateClient(It.IsAny<string>())).Returns(()=>new HttpClient());var clock=new Clock();

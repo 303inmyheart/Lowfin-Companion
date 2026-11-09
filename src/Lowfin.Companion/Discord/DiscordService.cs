@@ -16,6 +16,7 @@ public sealed class DiscordService(ISessionManager playback,ILibraryManager libr
     private sealed class Session(IDiscordGateway connection,string credentials,string token) {
         public IDiscordGateway Connection=connection;public string Credentials=credentials;public string Token=token;
         public Guid Item;public bool Paused;public long Start;public DateTimeOffset LastSeen,LastSent,NextProgramme;public Programme? Programme,SentProgramme;public string? Image;public DateTimeOffset NextArtwork;public string ArtworkOptions="";
+        public string PresenceOptions="";public long? BackgroundSince;
     }
     private readonly ConcurrentDictionary<Guid,RpcUpdate> pending=new();
     private readonly Channel<bool> signal=Channel.CreateBounded<bool>(new BoundedChannelOptions(1) {FullMode=BoundedChannelFullMode.DropWrite});
@@ -54,17 +55,20 @@ public sealed class DiscordService(ISessionManager playback,ILibraryManager libr
             catch(Exception error){log.LogError("Discord RPC token cannot be decrypted for user {UserId} ({Kind}). Restore the Companion secret-keys directory or enter the token again; encrypted configuration is retained.",update.User,error.GetType().Name);return;}
             session=new(gateways.Create(token),credentials,token);sessions.Add(update.User,session);}
         session.LastSeen=now;long start=now.ToUnixTimeMilliseconds()-Math.Max(0,update.Ticks)/10000;
+        string status=options.OnlineStatus is "online" or "idle" or "invisible" or "dnd"?options.OnlineStatus:"online";
+        string presenceOptions=status+"|"+options.AllowMobileNotifications;
+        bool presenceOptionsChanged=session.PresenceOptions!=presenceOptions;
         string artworkOptions=string.Join('|',options.UploadArtwork,options.ArtworkUploadUrl,options.FallbackImageUrl);
         bool artworkOptionsChanged=session.ArtworkOptions!=artworkOptions;
         bool artworkDue=session.Item!=update.Item.Id||artworkOptionsChanged||((options.UploadArtwork||!string.IsNullOrWhiteSpace(options.FallbackImageUrl))&&now>=session.NextArtwork);
-        bool changed=session.Item!=update.Item.Id||session.Paused!=update.Paused||Math.Abs(start-session.Start)>3000;
+        bool changed=presenceOptionsChanged||session.Item!=update.Item.Id||session.Paused!=update.Paused||Math.Abs(start-session.Start)>3000;
         if(session.Item!=update.Item.Id){session.NextProgramme=DateTimeOffset.MinValue;session.Programme=null;session.Image=null;}
         if(update.Item is LiveTvChannel channel&&now>=session.NextProgramme) {
             session.NextProgramme=now.AddSeconds(30);session.Programme=FindProgramme(update.User,channel,now.UtcDateTime);
             if(session.Programme is {} programme&&programme.End<session.NextProgramme.UtcDateTime)session.NextProgramme=new DateTimeOffset(DateTime.SpecifyKind(programme.End,DateTimeKind.Utc));
         }
         if(!changed&&Equals(session.Programme,session.SentProgramme)&&!artworkDue)return;
-        if(session.Item==update.Item.Id&&session.Paused==update.Paused&&now-session.LastSent<TimeSpan.FromSeconds(Math.Clamp(options.MinUpdateIntervalSeconds,5,300)))return;
+        if(!presenceOptionsChanged&&session.Item==update.Item.Id&&session.Paused==update.Paused&&now-session.LastSent<TimeSpan.FromSeconds(Math.Clamp(options.MinUpdateIntervalSeconds,5,300)))return;
         var previousImage=session.Image;
         if(artworkDue) {
             session.Image=await artwork.Resolve(update.Item,options,session.Token,cancellation).ConfigureAwait(false);
@@ -73,8 +77,9 @@ public sealed class DiscordService(ISessionManager playback,ILibraryManager libr
         if(!changed&&Equals(session.Programme,session.SentProgramme)&&session.Image==previousImage)return;
         var pausedImage=update.Paused?await artwork.ResolvePublic(options.PauseImageUrl,options.ApplicationId,session.Token,cancellation).ConfigureAwait(false):null;
         var activity=DiscordActivity.Build(update.Item,update.Ticks,update.Paused,options,now,session.Programme,session.Image,pausedImage);
-        string status=options.OnlineStatus is "online" or "idle" or "invisible"?options.OnlineStatus:"dnd";
-        session.Connection.Update(new JsonObject {["activities"]=new JsonArray(activity),["status"]=status,["since"]=0,["afk"]=false});
+        if(options.AllowMobileNotifications)session.BackgroundSince??=now.ToUnixTimeMilliseconds();else session.BackgroundSince=null;
+        session.Connection.Update(new JsonObject {["activities"]=new JsonArray(activity),["status"]=status,["since"]=session.BackgroundSince is {} since?JsonValue.Create(since):null,["afk"]=options.AllowMobileNotifications});
+        session.PresenceOptions=presenceOptions;
         session.Item=update.Item.Id;session.Start=start;session.Paused=update.Paused;session.LastSent=now;session.SentProgramme=session.Programme;
     }
     private Programme? FindProgramme(Guid userId,LiveTvChannel channel,DateTime now) {

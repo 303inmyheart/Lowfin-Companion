@@ -11,7 +11,8 @@ public sealed class DiscordOptions {
     public bool Enabled {get;set;}
     public string ApplicationId {get;set;}="";
     [XmlArrayItem("UserTokenMapping")] public DiscordUser[] Users {get;set;}=[];
-    public string OnlineStatus {get;set;}="dnd";
+    public string OnlineStatus {get;set;}="online";
+    public bool AllowMobileNotifications {get;set;}=true;
     public RpcNameMode NameMode {get;set;}
     public string CustomActivityName {get;set;}="{title}";
     public int StatusDisplayType {get;set;}=1;

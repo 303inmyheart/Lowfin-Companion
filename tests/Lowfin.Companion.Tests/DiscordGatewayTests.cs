@@ -29,7 +29,12 @@ public sealed class DiscordGatewayTests {
     private static WebApplication Server() {
         var builder=WebApplication.CreateSlimBuilder();builder.Logging.ClearProviders();var app=builder.Build();app.Urls.Add("http://127.0.0.1:0");app.UseWebSockets();return app;
     }
-    [Fact] public async Task LargeFragmentedReadyPublishesQueuedPresenceAndStopClearsIt() {
+    [Theory]
+    [InlineData("online",true)][InlineData("online",false)]
+    [InlineData("idle",true)][InlineData("idle",false)]
+    [InlineData("dnd",true)][InlineData("dnd",false)]
+    [InlineData("invisible",true)][InlineData("invisible",false)]
+    public async Task LargeFragmentedReadyPublishesQueuedPresenceAndStopClearsIt(string status,bool background) {
         Assert.Empty(DiscordGateway.DefaultEndpoint.Query);
         using var deadline=new CancellationTokenSource(TimeSpan.FromSeconds(15));var cancellation=deadline.Token;
         var received=new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);var cleared=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -41,6 +46,10 @@ public sealed class DiscordGatewayTests {
                 await Send(ws,new(){["op"]=10,["d"]=new JsonObject{["heartbeat_interval"]=45000}},cancellation);
                 var identify=await Read(ws,cancellation);Assert.Equal(2,identify["op"]!.GetValue<int>());Assert.Equal("fake-test-token",identify["d"]!["token"]!.GetValue<string>());
                 Assert.Equal("Discord Client",identify["d"]!["properties"]!["browser"]!.GetValue<string>());
+                Assert.Equal(background,identify["d"]!["presence"]!["afk"]!.GetValue<bool>());
+                Assert.Equal(status,identify["d"]!["presence"]!["status"]!.GetValue<string>());
+                Assert.Equal(background?1234567890000L:0L,identify["d"]!["presence"]!["since"]!.GetValue<long>());
+                Assert.Equal("Example movie",identify["d"]!["presence"]!["activities"]![0]!["details"]!.GetValue<string>());
                 // A realistic user READY exceeds the old 1 MiB cap and arrives fragmented.
                 await Send(ws,new(){["op"]=0,["t"]="READY",["s"]=41,["d"]=new JsonObject{["padding"]=new string('x',2*1024*1024)}},cancellation);
                 bool presence=false;
@@ -49,7 +58,7 @@ public sealed class DiscordGatewayTests {
                     if(op==1){await Send(ws,new(){["op"]=11,["d"]=null},cancellation);continue;}
                     Assert.Equal(3,op);var data=message["d"]!.AsObject();
                     if(!presence){presence=true;received.TrySetResult(data);}
-                    else if(data["activities"]!.AsArray().Count==0){Assert.Equal("invisible",data["status"]!.GetValue<string>());cleared.TrySetResult();return;}
+                    else if(data["activities"]!.AsArray().Count==0){Assert.Equal("invisible",data["status"]!.GetValue<string>());Assert.True(data["afk"]!.GetValue<bool>());cleared.TrySetResult();return;}
                 }
             }catch(Exception error){received.TrySetException(error);cleared.TrySetException(error);}
         });
@@ -57,8 +66,9 @@ public sealed class DiscordGatewayTests {
         var log=new TestLog();await using var gateway=new DiscordGateway("fake-test-token",log,endpoint:new Uri(app.Urls.Single().Replace("http://","ws://")));
         try {
             var activity=DiscordActivity.Build(new Movie{Name="Example movie",RunTimeTicks=TimeSpan.FromHours(2).Ticks},0,false,new(){ApplicationId="123"},DateTimeOffset.UtcNow);
-            gateway.Update(new(){["activities"]=new JsonArray(activity),["status"]="dnd",["since"]=0,["afk"]=false});
-            var data=await received.Task.WaitAsync(cancellation);Assert.Equal(0,data["since"]!.GetValue<int>());Assert.Equal("Example movie",data["activities"]![0]!["details"]!.GetValue<string>());
+            gateway.Update(new(){["activities"]=new JsonArray(activity),["status"]=status,["since"]=background?1234567890000L:0L,["afk"]=background});
+            var data=await received.Task.WaitAsync(cancellation);Assert.Equal(background?1234567890000L:0L,data["since"]!.GetValue<long>());Assert.Equal(background,data["afk"]!.GetValue<bool>());Assert.Equal("Example movie",data["activities"]![0]!["details"]!.GetValue<string>());
+            Assert.Equal(status,data["status"]!.GetValue<string>());
             var assets=data["activities"]![0]!["assets"]!.AsObject();Assert.False(assets.ContainsKey("large_image"));Assert.False(assets.ContainsKey("small_image"));
             await gateway.DisposeAsync();await cleared.Task.WaitAsync(cancellation);
             Assert.Contains(log.Lines,x=>x.Contains("session ready"));Assert.DoesNotContain(log.Lines,x=>x.Contains("fake-test-token"));

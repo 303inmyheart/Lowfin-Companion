@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Package a built plugin with local metadata, repository feed and installation archives."""
-import datetime, hashlib, json, pathlib, shutil, sys, zipfile, xml.etree.ElementTree as ET
+import datetime, hashlib, json, pathlib, re, shutil, sys, zipfile, xml.etree.ElementTree as ET
 
 root=pathlib.Path(__file__).resolve().parents[1]
 version=ET.parse(root/'src/Lowfin.Companion/Lowfin.Companion.csproj').findtext('./PropertyGroup/Version')
 assembly_version=version+'.0'
+notes=re.search(r'^## '+re.escape(version)+r'\s*\n(.*?)(?=^## |\Z)',(root/'CHANGELOG.md').read_text(encoding='utf-8'),re.MULTILINE|re.DOTALL)
+if notes is None or not notes.group(1).strip(): raise SystemExit('Missing changelog for plugin version')
 destination=pathlib.Path(sys.argv[1]) if len(sys.argv)>1 else root/'artifacts'
 destination.mkdir(parents=True,exist_ok=True)
 folder=destination/('Lowfin.Companion_'+assembly_version)
@@ -12,7 +14,7 @@ folder.mkdir(exist_ok=True)
 shutil.copy2(root/'src/Lowfin.Companion/bin/Release/net10.0/Lowfin.Companion.dll',folder/'Lowfin.Companion.dll')
 shutil.copy2(root/'assets/lowfin-companion.png',folder/'lowfin-companion.png')
 manifest={
-    'category':'General','changelog':'Retain 250,000 incremental library changes and 32,768 queued item events. Durable checksummed append records, periodic atomic checkpoints, bounded-page reads, existing-cursor migration and incomplete-tail recovery preserve efficient offline catch-up.',
+    'category':'General','changelog':notes.group(1).strip(),
     'description':'Per-user completion rules and independent resume positions for Lowfin. Requires Jellyfin 12.2 or newer.',
     'guid':'68abfd24-882d-4937-a104-44d55181b41e','name':'Lowfin Companion',
     'overview':'Completion, resume, incremental cache, cover tags and Discord presence','owner':'Lowfin','targetAbi':'12.2.0.0',
@@ -34,6 +36,9 @@ with zipfile.ZipFile(manual,'w',zipfile.ZIP_DEFLATED) as out:
         out.write(root/name,name)
     for source in sorted((root/'third-party').rglob('*')):
         if source.is_file(): out.write(source,source.relative_to(root))
+    for source in sorted((root/'docs').rglob('*')):
+        if source.is_file(): out.write(source,source.relative_to(root))
+    out.write(root/'assets/lowfin-companion.png','assets/lowfin-companion.png')
 feed_path=root/'manifest.json'
 feed=json.loads(feed_path.read_text(encoding='utf-8'))
 plugin=feed[0]

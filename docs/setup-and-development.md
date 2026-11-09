@@ -14,7 +14,7 @@ Download the locally built package from [GitHub releases](https://github.com/303
 
 1. Download the `-manual.zip` release asset, or build and package locally (see below). The unsuffixed ZIP is the flat package used by Jellyfin’s repository installer.
 2. Stop Jellyfin.
-3. Extract `Lowfin-Companion-0.7.1-manual.zip` and copy its entire `Lowfin.Companion_0.7.1.0` directory into Jellyfin's plugin directory. DLL, `meta.json` and image must be directly inside that versioned directory.
+3. Extract `Lowfin-Companion-0.7.2-manual.zip` and copy its entire `Lowfin.Companion_0.7.2.0` directory into Jellyfin's plugin directory. DLL, `meta.json` and image must be directly inside that versioned directory.
 4. Move the previous Companion plugin directory out of `plugins` as a backup, so only one version loads. Preserve the separate `lowfin-companion` data directory.
 5. Start Jellyfin and open Dashboard → Plugins → Lowfin Companion. Configure providers/user access and optional tags there, then reopen Lowfin.
 
@@ -91,6 +91,8 @@ Lowfin Companion appears in the dashboard sidebar. Its icon is the original two-
 Discord presence is optional and **off by default**. It observes Jellyfin playback events without changing playback reporting, watched status or completion rules. Configure the Discord application ID, then add enabled mappings between Jellyfin users and their Discord tokens. Only explicitly mapped users participate. A single presence is maintained per mapped user; the latest reported session wins when the same account plays on multiple devices.
 
 Supported media include movies, episodes, music, books, live TV and an optional fallback for other media. Live TV displays the channel above the current programme, with a programme start/end time bar when EPG timings are valid. Without programme information it repeats the channel title. Paused playback has no running time bar. The dashboard also controls names/templates, activity display, online state, update throttling, idle cleanup, link buttons and artwork. An idle timeout of zero disables idle cleanup; playback-stop still clears presence.
+
+The default-on **Keep the server session inactive (allow mobile push)** option marks this server connection as AFK, including its initial gateway handshake. Its inactivity timestamp stays stable across playback updates. This avoids reporting continuous desktop interaction while watching Jellyfin; Discord still decides whether to deliver notifications. It does not override notification permissions, notification delays or Do Not Disturb. New configurations default to Online; existing saved status choices are preserved. Use Online or Idle if notifications are desired. Disable this option only to restore active-session signaling.
 
 This compatibility mode uses a **Discord user-token gateway connection**, not official desktop RPC or a bot integration. Discord prohibits automated user accounts. Tokens are sensitive. Only their encrypted values are persisted in the plugin configuration and returned by Jellyfin's administrator configuration API. New tokens are submitted through that API for encryption before saving. This feature is not enabled or connected during automated tests. No real Discord credentials are included in the repository.
 

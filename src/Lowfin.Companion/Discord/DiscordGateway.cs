@@ -80,7 +80,10 @@ public sealed class DiscordGateway(string token,ILogger<DiscordGateway> log,IHtt
                 Frame hello;
                 using(var timeout=CancellationTokenSource.CreateLinkedTokenSource(session.Token)) {timeout.CancelAfter(TimeSpan.FromSeconds(15));hello=await Read(ws,timeout.Token).ConfigureAwait(false);}
                 if(hello.Op!=10)throw new IOException("Missing gateway HELLO");
-                await Send(2,new JsonObject {["token"]=token,["intents"]=0,["properties"]=new JsonObject {["os"]="Windows 10",["browser"]="Discord Client",["device"]="Discord Client"}},session.Token).ConfigureAwait(false);
+                JsonObject? initialPresence;lock(gate)initialPresence=(JsonObject?)latest?.DeepClone();
+                var identify=new JsonObject {["token"]=token,["intents"]=0,["properties"]=new JsonObject {["os"]="Windows 10",["browser"]="Discord Client",["device"]="Discord Client"}};
+                if(initialPresence is not null)identify["presence"]=initialPresence;
+                await Send(2,identify,session.Token).ConfigureAwait(false);
                 var receive=Receive(ws,()=>reachedReady=true,session.Token);var heartbeat=Heartbeat(hello.HeartbeatInterval,session.Token);var publish=Publish(session.Token);
                 try {await await Task.WhenAny(receive,heartbeat,publish).ConfigureAwait(false);}
                 finally {
@@ -137,7 +140,7 @@ public sealed class DiscordGateway(string token,ILogger<DiscordGateway> log,IHtt
         if(Interlocked.Exchange(ref disposed,1)!=0)return;
         if(ready) {
             using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            try {await Send(3,new JsonObject {["activities"]=new JsonArray(),["status"]="invisible",["afk"]=false,["since"]=0},timeout.Token).ConfigureAwait(false);}catch(Exception){}
+            try {await Send(3,new JsonObject {["activities"]=new JsonArray(),["status"]="invisible",["afk"]=true,["since"]=null},timeout.Token).ConfigureAwait(false);}catch(Exception){}
         }
         lifetime.Cancel();socket?.Abort();Task? task;lock(gate){latest=null;task=runner;}
         if(task is not null)try {await task.ConfigureAwait(false);}catch(OperationCanceledException){}
