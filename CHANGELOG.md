@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0
+
+- Fix the stored-loudness status wire format: explicitly serialize lowercase field names instead of depending on Jellyfin's JSON naming policy. Accept both current and legacy PascalCase fields in the dashboard so a completed inventory no longer appears to count forever.
+- Refresh loudness status automatically while stored profiles are being counted or audio measurement is running. Stop polling when ready/idle, when leaving the page or hiding the browser tab; ignore stale responses and avoid concurrent status requests.
+- Keep stored-profile inventory responsive on slow storage and tolerate incomplete JSON rows without discarding healthy measurements. Surface background inventory failures instead of leaving a permanent counting indicator.
+- Separate persisted loudness-profile totals from per-run counters in the dashboard. Inventory saved profiles once in the background after restart and maintain totals as profiles are written or removed; do not display a reset run counter as the saved total.
+- Reuse unchanged cover facts and per-user series/season summaries during daily checks. Batch native user-scoped episode queries, update only affected parents, preserve events arriving during a scan, and expose reused/recalculated counters. Revalidate old index entries once when revision information is missing.
+- Coalesce repeated metadata notifications into bounded delivery pages and suppress already delivered unchanged revisions. Preserve image updates, computed cover-tag changes, removals, cursor resets and the durable change history.
+- Page loudness discovery without redundant item lookups, reuse native stereo measurements for the identical two-channel downmix, skip duplicate snapshot writes, and preserve measurements while a media share is unavailable. Ordinary folder bookkeeping no longer queues a whole-library audio check.
+- Add a real Jellyfin scheduled loudness-measurement task, started automatically by new/updated local media and available for manual runs/cancellation. Reconcile daily, skip unchanged audio, measure each embedded track/media version separately and persist completed profiles across restarts.
+- Add a default-off dashboard switch, measurement status, bounded single-process FFmpeg analysis and an authenticated, visibility-checked measurement API. Do not measure Live TV or change media files, playback reporting or global server settings.
+- Return the plugin version from its assembly rather than an outdated capability literal.
+
 ## 0.7.2
 
 - Add a default-on background/AFK mode for Discord presence so playback does not continually report an active desktop session. Include the initial presence during gateway identification and keep inactivity timestamps stable. Default new configurations to Online, preserve saved status choices, and apply presence-policy changes on the next playback event without waiting for a seek or artwork refresh. Notification delivery remains controlled by Discord.

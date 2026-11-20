@@ -11,6 +11,7 @@ namespace Lowfin.Companion;
 
 public sealed class PluginConfiguration : BasePluginConfiguration {
     public bool DashboardLogoEnabled {get;set;}=true;
+    public bool AudioLoudnessEnabled {get;set;}
     public Discord.DiscordOptions DiscordRpc {get;set;}=new();
     public bool ImageBadgesEnabled { get; set; }
     public bool ShowDvdBadge { get; set; }=true;
@@ -59,6 +60,11 @@ public sealed class Registrator : IPluginServiceRegistrator {
         services.AddSingleton(provider=>new BadgeIndex(Path.Combine(provider.GetRequiredService<IApplicationPaths>().DataPath,"lowfin-companion"),provider.GetRequiredService<IBadgeIndexSource>(),ids=>provider.GetRequiredService<CacheFeed>().NotifyBadgeChanges(ids),log:provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BadgeIndex>>()));
         services.AddSingleton<IHostedService,BadgeIndexWorker>();
         services.AddSingleton<ProviderGateway>();
+        services.AddSingleton(provider=>new LoudnessStore(Path.Combine(provider.GetRequiredService<IApplicationPaths>().DataPath,"lowfin-companion")));
+        services.AddSingleton<ILoudnessSource,AudioLoudnessSource>();
+        services.AddSingleton<ILoudnessAnalyzer,AudioLoudnessAnalyzer>();
+        services.AddSingleton<AudioLoudnessIndex>();
+        services.AddHostedService<AudioLoudnessWorker>();
         services.AddSingleton<ActionOrder>();
         services.AddSingleton<CompanionService>();
         services.AddSingleton<CompanionEvents>();

@@ -16,8 +16,10 @@ Optionales Server-Plugin für **Jellyfin 12.2 oder neuer**, das den [Lowfin-Clie
 - **Persistent Resume:** Fortsetzposition unabhängig vom Gesehen-Status, mit Schutz vor veralteten Meldungen und Konflikten mit manuellen Aktionen. Regeln gelten für denselben Jellyfin-Benutzer auf seinen Lowfin-Geräten; die Verarbeitung beginnt erst bei aktivierter entsprechender Regel/Fortsetzoption.
 - **Inkrementeller Bibliothekscache:** Lowfin lädt geänderte Metadaten/Bilder, statt einen fertigen Cache neu aufzubauen. Das persistente Journal hält bis zu 250.000 Änderungen vor; das ist eine Anzahlgrenze und keine garantierte Tagesanzahl.
 - **Zentrale Anbieterzugänge:** OMDb, MDBList, TMDB und Tracearr im Jellyfin-Dashboard einrichten und für alle oder ausgewählte Benutzer freigeben. Jeder TV behält seine Anzeige-/Anbieterauswahl und den optionalen Bewertungscache; Folgenbewertungen bleiben ungecacht.
-- **Cover-Tags:** optionale Auflösungs-, HDR-, Codec-, Audio- und Sprachkennzeichnungen im Lowfin-Kartenrahmen. Der persistente Index verarbeitet Bibliotheksereignisse und gleicht sich täglich ab. Originalbilder und Bilder anderer Clients bleiben unverändert.
+- **Cover-Tags:** optionale Auflösungs-, HDR-, Codec-, Audio- und Sprachkennzeichnungen im Lowfin-Kartenrahmen. Der persistente Index verarbeitet Bibliotheksereignisse und gleicht sich täglich ab. Originalbilder und Bilder anderer Clients bleiben unverändert. [Index und Cache-Verhalten (Englisch)](docs/index-and-cache.md).
 - **Discord Rich Presence:** optionale Präsenz pro Benutzer mit Bildern sowie Live-TV-Programm und Zeitangaben. Standardmäßig aus; [Einrichtung, Token- und Bild-Upload-Hinweise vor dem Aktivieren lesen (Englisch)](docs/setup-and-development.md#dashboard-navigation-and-discord-presence).
+
+- **Lautheitsmessung:** persistente Werte je Tonspur und eine manuell startbare Jellyfin-Aufgabe, die bei neuen/geänderten lokalen Medien automatisch läuft. [Einrichtung und Grenzen (Englisch)](docs/audio-loudness.md).
 
 ## Installation
 

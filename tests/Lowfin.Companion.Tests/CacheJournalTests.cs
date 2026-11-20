@@ -5,6 +5,18 @@ namespace Lowfin.Companion.Tests;
 
 public sealed class CacheJournalTests : IDisposable {
     private readonly string directory=Path.Combine(Path.GetTempPath(),"lowfin-cache-"+Guid.NewGuid());
+    [Fact] public void MetadataDeliveryCollapsesDuplicateHistoryWithoutSkippingDistinctItemsOrResets() {
+        var journal=new CacheJournal(directory);Guid a=Guid.NewGuid(),b=Guid.NewGuid(),c=Guid.NewGuid();
+        journal.Append([new(0,a,false,[]),new(0,a,false,[]),new(0,b,false,[]),new(0,a,false,[]),new(0,c,false,[])]);
+        var first=journal.CoalescedSnapshot(0,2);Assert.Equal(new[]{b,a},first.Changes.Select(x=>x.ItemId));Assert.Equal(4,first.Changes[^1].Sequence);
+        Assert.Equal(c,Assert.Single(journal.CoalescedSnapshot(4,2).Changes).ItemId);Assert.Equal(5,journal.Snapshot().Changes.Count);
+        journal.Append([new(0,Guid.Empty,false,[],true)]);Assert.True(Assert.Single(journal.CoalescedSnapshot(0,8).Changes).Reset);
+    }
+    [Fact] public void DuplicateHistoryWindowIsBoundedAndMakesCursorProgress() {
+        var journal=new CacheJournal(directory);Guid id=Guid.NewGuid();journal.Append(Enumerable.Range(0,10000).Select(_=>new CacheChange(0,id,false,[])));
+        long cursor=0;int requests=0;while(cursor<10000) {var page=journal.CoalescedSnapshot(cursor,8);Assert.Single(page.Changes);Assert.True(page.Changes[^1].Sequence>cursor);cursor=page.Changes[^1].Sequence;requests++;}Assert.Equal(3,requests);
+        Assert.Equal(10000,new CacheJournal(directory).Snapshot().Head);
+    }
     [Fact] public void DurableOrderedEntriesSurviveRestart() {
         var journal=new CacheJournal(directory); var id=Guid.NewGuid(); journal.Append([new(0,id,false,[]),new(0,id,false,[])]);
         var restored=new CacheJournal(directory).Snapshot(); Assert.Equal(2,restored.Head); Assert.Equal([1L,2L],restored.Changes.Select(x=>x.Sequence)); Assert.Equal(id,restored.Changes[1].ItemId);
@@ -36,6 +48,15 @@ public sealed class CacheJournalTests : IDisposable {
         await journal.Wait(1,2,CancellationToken.None); Assert.Single(journal.Snapshot().Changes,x=>x.ItemId==item.Id);
         long before=journal.Snapshot().Head; library.Raise(x=>x.ItemRemoved+=null,library.Object,args); await journal.Wait(before,2,CancellationToken.None);
         Assert.True(journal.Snapshot().Changes.Last().Reset); await feed.StopAsync(CancellationToken.None);
+    }
+    [Fact] public async Task DeliveredNativeRevisionIsNotQueuedAgainButImageAndComputedTagChangesAre() {
+        var journal=new CacheJournal(directory);var library=new Moq.Mock<MediaBrowser.Controller.Library.ILibraryManager>();using var feed=new CacheFeed(journal,library.Object,Microsoft.Extensions.Logging.Abstractions.NullLogger<CacheFeed>.Instance);
+        await feed.StartAsync(default);var item=new MediaBrowser.Controller.Entities.Movies.Movie {Id=Guid.NewGuid(),DateLastSaved=DateTime.UtcNow};
+        var args=new MediaBrowser.Controller.Library.ItemChangeEventArgs {Item=item};library.Raise(x=>x.ItemUpdated+=null,library.Object,args);await journal.Wait(1,2,default);Assert.Equal(2,journal.Snapshot().Head);
+        library.Raise(x=>x.ItemUpdated+=null,library.Object,args);await Task.Delay(650);Assert.Equal(2,journal.Snapshot().Head);
+        feed.NotifyBadgeChanges([item.Id]);await journal.Wait(2,2,default);Assert.Equal(3,journal.Snapshot().Head);
+        args.UpdateReason=MediaBrowser.Controller.Library.ItemUpdateType.ImageUpdate;library.Raise(x=>x.ItemUpdated+=null,library.Object,args);await journal.Wait(3,2,default);Assert.Equal(4,journal.Snapshot().Head);
+        args.UpdateReason=MediaBrowser.Controller.Library.ItemUpdateType.None;item.DateLastSaved=item.DateLastSaved.AddSeconds(1);library.Raise(x=>x.ItemUpdated+=null,library.Object,args);await journal.Wait(4,2,default);Assert.Equal(5,journal.Snapshot().Head);await feed.StopAsync(default);
     }
     [Fact] public void DefaultHistoryRetainsFarMoreThanTheOldLimitAndPagesWithoutFalseGaps() {
         Assert.Equal(250000,CacheJournal.DefaultCapacity);var journal=new CacheJournal(directory);

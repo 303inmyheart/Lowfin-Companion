@@ -16,8 +16,10 @@ An optional server plugin for **Jellyfin 12.2 or newer**, extending the [Lowfin 
 - **Persistent Resume:** retain playback positions independently of watched status, with protections against stale events and manual-action races. Rules follow the same Jellyfin user across Lowfin devices; processing starts only when the corresponding rule/resume option is enabled.
 - **Incremental library cache:** a persistent journal lets Lowfin fetch changed metadata/artwork instead of rebuilding a completed cache. It retains up to 250,000 changes; retention is count-based, not a guaranteed number of days.
 - **Central provider access:** configure OMDb, MDBList, TMDB and Tracearr in the Jellyfin dashboard and share access with all or selected users. Each TV keeps its own display/provider choices and optional local rating cache; episode ratings remain uncached.
-- **Cover tags:** optional resolution, HDR, codec, audio and language labels in Lowfin's card frames. A persistent index follows library events and reconciles daily; original artwork and other clients' images are unchanged.
+- **Cover tags:** optional resolution, HDR, codec, audio and language labels in Lowfin's card frames. A persistent index follows library events and reconciles daily; original artwork and other clients' images are unchanged. [Index and cache behavior](docs/index-and-cache.md).
 - **Discord Rich Presence:** optional per-user presence, artwork and Live TV programme information/timing. Disabled by default; [read the setup, token and artwork-upload notes before enabling it](docs/setup-and-development.md#dashboard-navigation-and-discord-presence).
+
+- **Audio loudness:** persistent per-track measurements and a manually startable Jellyfin task, automatically triggered by new/changed local media. [Setup and limits](docs/audio-loudness.md).
 
 ## Install
 

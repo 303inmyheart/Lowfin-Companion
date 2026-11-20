@@ -45,6 +45,23 @@ public sealed class CacheJournal {
             return state with { FirstSequence=first,Changes=state.Changes.GetRange(offset,Math.Min(limit,state.Changes.Count-offset)) };
         }
     }
+    /// <summary>Deliver the latest event per item in a bounded consecutive window. No item or
+    /// reset is skipped when advancing the opaque cursor; retained audit history stays intact.</summary>
+    public CacheJournalState CoalescedSnapshot(long after,int limit) {
+        if(limit<1||limit>20) throw new ArgumentOutOfRangeException(nameof(limit));
+        lock(gate) {
+            long first=state.Changes.Count==0?state.Head+1:state.Changes[0].Sequence;
+            int offset=(int)Math.Clamp(after<first?0:after-first+1,0,state.Changes.Count);
+            var latest=new Dictionary<Guid,CacheChange>();
+            for(int i=offset;i<Math.Min(state.Changes.Count,offset+4096);i++) {
+                var entry=state.Changes[i];
+                if(entry.Reset) return state with {FirstSequence=first,Changes=[entry]};
+                if(!latest.ContainsKey(entry.ItemId)&&latest.Count==limit) break;
+                latest[entry.ItemId]=entry;
+            }
+            return state with {FirstSequence=first,Changes=latest.Values.OrderBy(entry=>entry.Sequence).ToList()};
+        }
+    }
     public void Append(IEnumerable<CacheChange> changes) {
         // The feed ticks even while idle; never clone the retained history for an empty batch.
         var incoming=changes.ToList();if(incoming.Count==0)return;

@@ -8,7 +8,8 @@ public sealed class BadgeIndexTests : IDisposable {
     private sealed class Clock : TimeProvider { public DateTimeOffset Now=new(2026,10,21,12,0,0,TimeSpan.Zero);public override DateTimeOffset GetUtcNow()=>Now; }
     private sealed class Source : IBadgeIndexSource {
         public Dictionary<Guid,BadgeIndexItem> Items=[];public List<BadgeIndexUser> Accounts=[];public Dictionary<Guid,int> Masks=[];
-        public int Reads,Counts,Scans;public Action? DuringScan;
+        public int Reads,Counts,Scans;public Action? DuringScan;public string? Visible;
+        public string? Visibility(Guid user,CancellationToken token)=>Visible;
         public IEnumerable<BadgeIndexItem> All(CancellationToken token) { Scans++;var snapshot=Items.Values.ToArray();DuringScan?.Invoke();foreach(var item in snapshot) { token.ThrowIfCancellationRequested();yield return item; } }
         public int? TotalCount()=>Items.Count;
         public BadgeIndexItem? Read(Guid id) { Reads++;return Items.GetValueOrDefault(id); }
@@ -58,6 +59,52 @@ public sealed class BadgeIndexTests : IDisposable {
         var source=Fixture();var clock=new Clock();var index=new BadgeIndex(directory,source,_=>{},clock);Assert.True(index.Due);await index.Rebuild(default);
         clock.Now=clock.Now.AddHours(23);Assert.False(new BadgeIndex(directory,source,_=>{},clock).Due);clock.Now=clock.Now.AddHours(1);Assert.True(index.Due);
         var task=new BadgeIndexTask(index);Assert.Equal(TimeSpan.FromHours(24).Ticks,Assert.Single(task.GetDefaultTriggers()).IntervalTicks);
+    }
+    [Fact] public async Task UnchangedDailyCheckReusesAllSummariesIncludingAfterRestart() {
+        var source=Fixture();var clock=new Clock();var notified=new List<Guid>();var index=new BadgeIndex(directory,source,ids=>notified.AddRange(ids),clock);await index.Rebuild(default);int before=source.Counts;
+        clock.Now=clock.Now.AddDays(1);index=new BadgeIndex(directory,source,ids=>notified.AddRange(ids),clock);await index.Rebuild(default);
+        Assert.Equal(before,source.Counts);Assert.Empty(notified);Assert.False(index.Due);
+    }
+    [Fact] public async Task FortyThousandEpisodeWarmCheckDoesNotIssueAnyContainerRecalculations() {
+        var source=new Source {Accounts=Enumerable.Range(0,4).Select(i=>new BadgeIndexUser(Guid.NewGuid(),"scope-"+i)).ToList(),Visible="stable"};
+        for(int show=0;show<100;show++) {
+            Guid seriesId=Guid.NewGuid();source.Items[seriesId]=new(seriesId,0,true,[],[]);
+            for(int staffel=0;staffel<10;staffel++) {
+                Guid seasonId=Guid.NewGuid();source.Items[seasonId]=new(seasonId,0,true,[seriesId],[]);
+                for(int episode=0;episode<40;episode++) {Guid id=Guid.NewGuid();source.Items[id]=new(id,1,false,[seriesId,seasonId],["dvd","h264"]);}
+            }
+        }
+        for(int film=0;film<750;film++) {Guid id=Guid.NewGuid();source.Items[id]=new(id,0,false,[],["1080p"]);}
+        var index=new BadgeIndex(directory,source,_=>{});await index.Rebuild(default);int counts=source.Counts;var watch=System.Diagnostics.Stopwatch.StartNew();await index.Rebuild(default);
+        Assert.Equal(4400,counts);Assert.Equal(counts,source.Counts);Assert.Equal(41850,source.Items.Count);
+        Console.WriteLine("Synthetic warm check: 40,000 episodes, 750 movies, 1,100 containers, 4 users; zero container recalculations; elapsed "+watch.ElapsedMilliseconds+" ms. Native database/network time is not included.");
+    }
+    [Fact] public async Task FullCheckOnlyRecalculatesParentsOfChangedEpisode() {
+        var source=Fixture();Guid other=Guid.NewGuid();source.Items[other]=new(other,0,true,[series]);var index=new BadgeIndex(directory,source,_=>{});await index.Rebuild(default);int before=source.Counts;
+        source.Items[movie]=source.Items[movie] with {Mask=4};await index.Rebuild(default);Assert.Equal(2,source.Counts-before);
+    }
+    [Fact] public async Task IncrementalEpisodeUpdateDoesNotRecalculateEverySiblingSeason() {
+        var source=Fixture();for(int i=0;i<50;i++) {Guid id=Guid.NewGuid();source.Items[id]=new(id,0,true,[series]);}
+        var index=new BadgeIndex(directory,source,_=>{});await index.Rebuild(default);int before=source.Counts;
+        source.Items[movie]=source.Items[movie] with {Mask=4};index.Queue(movie);await index.Update(default);Assert.Equal(2,source.Counts-before);
+    }
+    [Fact] public async Task UnchangedLibraryEventsDoNotRecalculateOrWriteAnotherSnapshot() {
+        var source=Fixture();var index=new BadgeIndex(directory,source,_=>{});await index.Rebuild(default);int counts=source.Counts;string file=Path.Combine(directory,"badge-index.json");long modified=File.GetLastWriteTimeUtc(file).Ticks;
+        for(int i=0;i<100;i++) index.Queue(movie);await index.Update(default);Assert.Equal(counts,source.Counts);Assert.Equal(modified,File.GetLastWriteTimeUtc(file).Ticks);
+    }
+    [Fact] public async Task MetadataOnlyRevisionDoesNotRecalculateSummariesButAccessChangesDo() {
+        var source=Fixture();source.Items[movie]=source.Items[movie] with {Revision="first",Access="allowed"};var index=new BadgeIndex(directory,source,_=>{});await index.Rebuild(default);int counts=source.Counts;
+        source.Items[movie]=source.Items[movie] with {Revision="cover-update"};index.Queue(movie);await index.Update(default);Assert.Equal(counts,source.Counts);
+        source.Items[movie]=source.Items[movie] with {Access="restricted"};index.Queue(movie);await index.Update(default);Assert.Equal(counts+2,source.Counts);
+    }
+    [Fact] public async Task NativeVisibilityChangesForceFreshSummariesEvenWithUnchangedFactsAndScope() {
+        var source=Fixture();source.Visible="before";var index=new BadgeIndex(directory,source,_=>{});await index.Rebuild(default);int counts=source.Counts;
+        source.Visible="after";source.Masks[series]=0;await index.Rebuild(default);Assert.Equal(counts+2,source.Counts);Assert.Equal(0,index.Get(series,user,"scope-a",true));
+    }
+    [Fact] public async Task ScanConsumesExistingBacklogButRetainsReplacementEventsArrivingDuringIt() {
+        var source=Fixture();var index=new BadgeIndex(directory,source,_=>{});await index.Rebuild(default);
+        index.Queue(movie);await index.Rebuild(default);int reads=source.Reads;await index.Update(default);Assert.Equal(reads,source.Reads);
+        index.Queue(movie);source.DuringScan=()=> {source.Items[movie]=source.Items[movie] with {Mask=7};index.Queue(movie);};await index.Rebuild(default);await index.Update(default);Assert.Equal(7,index.Get(movie,user,"scope-a",false));
     }
     [Fact] public async Task CorruptOrMissingIndexQueuesWorkAndNeverCalculatesInRead() {
         Directory.CreateDirectory(directory);File.WriteAllText(Path.Combine(directory,"badge-index.json"),"broken");var source=Fixture();var index=new BadgeIndex(directory,source,_=>{});

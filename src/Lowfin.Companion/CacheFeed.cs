@@ -14,7 +14,9 @@ namespace Lowfin.Companion;
 
 /// <summary>Jellyfin callbacks only enqueue IDs. Disk writes and DTO work never run in their handlers.</summary>
 public sealed class CacheFeed(CacheJournal journal,ILibraryManager library,ILogger<CacheFeed> log) : BackgroundService {
-    private readonly ConcurrentDictionary<Guid,CacheChange> pending=new();
+    private sealed record Pending(CacheChange Change,long Revision,bool Forced);
+    private readonly ConcurrentDictionary<Guid,Pending> pending=new();
+    private readonly ConcurrentDictionary<Guid,long> delivered=new();
     private int reset;
     private volatile bool healthy=true;
     public CacheJournal Journal=>healthy?journal:throw new IOException("Cache journal unavailable");
@@ -26,14 +28,18 @@ public sealed class CacheFeed(CacheJournal journal,ILibraryManager library,ILogg
         if(!Supported(args.Item)) return;
         // Moves and removals need an authoritative reconciliation: event args do not expose the previous visibility.
         // Ordinary metadata edits are the common cheap incremental path.
-        if(removed) { Interlocked.Exchange(ref reset,1); return; }
+        if(removed) { delivered.TryRemove(args.Item.Id,out _);Interlocked.Exchange(ref reset,1); return; }
+        long revision=args.Item.DateLastSaved.Ticks;
+        bool forced=args.UpdateReason>=ItemUpdateType.ImageUpdate;
+        if(!forced&&revision>0&&delivered.TryGetValue(args.Item.Id,out long sent)&&sent==revision) return;
         if(pending.Count>=32768) { Interlocked.Exchange(ref reset,1); return; }
-        pending[args.Item.Id]=new(0,args.Item.Id,false,[]);
+        Enqueue(args.Item.Id,revision,forced);
     }
+    private void Enqueue(Guid id,long revision,bool forced)=>pending.AddOrUpdate(id,new Pending(new(0,id,false,[]),revision,forced),(_,previous)=>new(new(0,id,false,[]),revision>0?revision:previous.Revision,forced||previous.Forced));
     public void NotifyBadgeChanges(IReadOnlyCollection<Guid> ids) {
         foreach(var id in ids) {
             if(pending.Count>=32768) { Interlocked.Exchange(ref reset,1);break; }
-            pending[id]=new(0,id,false,[]);
+            Enqueue(id,0,true); // A computed tag change does not change Jellyfin's item ETag.
         }
     }
     public override async Task StartAsync(CancellationToken token) {
@@ -45,10 +51,18 @@ public sealed class CacheFeed(CacheJournal journal,ILibraryManager library,ILogg
     protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
         using var timer=new PeriodicTimer(TimeSpan.FromMilliseconds(500));
         try { while(await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) {
-            var batch=new List<CacheChange>();
+            var batch=new List<CacheChange>();var accepted=new List<KeyValuePair<Guid,Pending>>();
             if(Interlocked.Exchange(ref reset,0)!=0) batch.Add(new(0,Guid.Empty,false,[],true));
-            foreach(var id in pending.Keys) if(pending.TryRemove(id,out var change)) batch.Add(change);
-            try { journal.Append(batch); healthy=true; }
+            foreach(var id in pending.Keys) if(pending.TryRemove(id,out var change)) {
+                if(!change.Forced&&change.Revision>0&&delivered.TryGetValue(id,out long sent)&&sent==change.Revision) continue;
+                batch.Add(change.Change);accepted.Add(new(id,change));
+            }
+            try {
+                journal.Append(batch);healthy=true;
+                // Remember revisions only after durable append, never in the synchronous callback.
+                if(delivered.Count>=65536) delivered.Clear();
+                foreach(var pair in accepted) if(pair.Value.Revision>0) delivered[pair.Key]=pair.Value.Revision;
+            }
             catch(Exception exception) { healthy=false; Interlocked.Exchange(ref reset,1); log.LogError(exception,"Could not persist cache changes; reconciliation will be requested."); }
         } } catch(OperationCanceledException) when(stoppingToken.IsCancellationRequested) { }
     }

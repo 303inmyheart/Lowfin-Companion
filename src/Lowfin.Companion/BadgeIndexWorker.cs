@@ -10,7 +10,7 @@ namespace Lowfin.Companion;
 
 public sealed class BadgeIndexWorker(BadgeIndex index,ILibraryManager library,IUserManager users,ILogger<BadgeIndexWorker> log) : BackgroundService {
     private void Changed(object? sender,ItemChangeEventArgs args) {
-        if(args.Item is CollectionFolder) index.RequestFull();else if(BadgeIndexSource.Supported(args.Item)) index.Queue(args.Item.Id);
+        if(args.Item is Folder&&!BadgeIndexSource.Supported(args.Item)) index.RequestFull();else if(BadgeIndexSource.Supported(args.Item)) index.Queue(args.Item.Id);
     }
     private void UserChanged(object? sender,GenericEventArgs<User> args)=>index.QueueUser(args.Argument.Id);
     public override Task StartAsync(CancellationToken token) {

@@ -1,0 +1,33 @@
+# Companion audio loudness
+
+## On the TV
+
+Under **Settings → Playback → Audio**, **Normalize playback volume** is enabled by default with **Medium** strength. Light/Medium/Strong control scene leveling. Changes apply to the next playback. The local processor works without Companion, server measurements or additional playback requests. It uses decoded PCM, preserving the channel count after the existing optional stereo mixer; encoded passthrough/offload is unavailable while enabled. Disabling normalization restores the previous renderer path. If audio output/decoding fails while enabled, Lowfin retries once with the original audio path for the rest of that playback activity; it does not change the saved switch.
+
+Companion supplies a conservative programme gain. A linked local gain controller reduces scene differences, and a frame-linked limiter prevents digital sample clipping without a lookahead buffer. Channels receive the same gain. Silence is not amplified; seeks reset scene history. This is not a promise of identical perceived loudness in every scene or a certified oversampled true-peak limiter.
+
+Calibration is fetched asynchronously once for the chosen media source, without delaying first frame or issuing a request on each track switch. Matching uses the actual selected audio format, file stream index and versioned native/stereo profile. Multiple versions and embedded audio languages are measured separately. If identity is ambiguous, the file is remote, the audio is transcoded, a measurement is pending or the plugin is missing, local leveling remains available. Unknown layouts are not assigned an invented stereo calibration.
+
+## In Companion
+
+**Audio loudness → Automatically measure new and changed audio tracks** is disabled by default. Enable it explicitly to allow automatic and manual measurement. Switching it on immediately queues the first measurement task. Disabling it retains existing measurement files. Every execution runs through Jellyfin's task manager as **Lowfin · Measure audio loudness**, under **Dashboard → Scheduled Tasks → Lowfin Companion**. It can be started or cancelled there. Library additions/updates enqueue the affected item and start that same task in the background. Startup and a daily reconciliation check for missed changes; unchanged measurements are reused rather than decoded or rewritten. Metadata/cover-only updates do not cause new measurements.
+
+One FFmpeg analysis runs at a time, with one decoder/filter thread. Only local movie/episode/video files are eligible. Analysis decodes audio and writes no modified media. The first pass through a large library can be lengthy and consumes server CPU and disk bandwidth. Cancel the task to stop the process; completed track profiles survive. Unsupported/failed measurements back off for 24 hours; a changed file can retry earlier. Disabling the dashboard option cancels active analysis.
+
+Discovery reads library items in pages and reuses their source information. Ordinary folder updates do not trigger a full audio check. For two-channel audio, the stereo matrix is the identity, so its profile reuses the native measurement instead of decoding the same track twice. Multichannel downmixes still need their own analysis. Unchanged profiles are neither measured nor rewritten. An unavailable network share retains stored profiles, but the API withholds their gain until the file identity can be verified again.
+
+Dashboard status separates saved profile/media totals from current or last-run counters. Run counters reset on restart and at each new task; a zero for newly measured profiles does not mean saved results were lost. Saved totals are inventoried once in the background after restart, then maintained on writes/removals. They include stored profiles awaiting file revalidation; Lowfin still receives only measurements matching the current file fingerprint. Native and stereo profiles count separately, so profile counts are not media or audio-track counts.
+
+The status API explicitly names stored totals `ready`, `failed`, `items` and `profiles`, independent of Jellyfin's JSON naming policy. The dashboard also accepts legacy `Ready`/`Failed`/`Items`/`Profiles` responses.
+
+The open dashboard refreshes status every two seconds while inventory or measurement is active, then stops when the totals are ready and the task is idle. Leaving the page or hiding the browser tab stops polling. Returning refreshes the current state; manual refresh remains available. Counting reads measurement records only and never starts audio analysis. Partial records cannot leave inventory stuck indefinitely, and healthy measurements in those records remain usable.
+
+Data is stored in `<Jellyfin data directory>/lowfin-companion/audio-loudness/`, one small JSON record per item, including separate source/track/profile entries. Measurements contain integrated LUFS, range LU, true peak dBFS and measurement time. Fingerprints cover the local path, length, modification/creation time and stream properties; there is no full-file hash. Replacements that deliberately preserve all those attributes cannot be detected through this fingerprint alone. Replacing a file during analysis invalidates its result. Back up this directory if measurements should survive server migration.
+
+Discovery advertises `audioLoudness` when enabled. Authenticated `GET /Lowfin/Companion/v1/items/{itemId}/audio-loudness?sourceId=...` checks user visibility and current source/file identity, returning measurements without paths, fingerprints or credentials. `GET /Lowfin/Companion/v1/audio-loudness/status` requires administrator access. Neither endpoint starts audio decoding. Normal Jellyfin reporting, completion rules and tracking integrations are unchanged.
+
+## Live TV evaluation
+
+Live TV is deliberately excluded in this build. A channel has no finite whole-programme loudness to measure in advance; programmes, advertisements and audio tracks change. Measuring all channels on the server would require additional live connections and continuous decoding, without a reusable file measurement.
+
+A separate optional client-side real-time leveler could be useful later, especially for loud advertisements, using the same bounded PCM processing. It would need adaptation/track-change and long-running Live TV tests first. Server pre-scanning and persistent per-channel gain are not recommended. See [FFmpeg loudness measurement and normalization](https://ffmpeg.org/ffmpeg-filters.html#loudnorm) and [Media3 audio sink processing](https://github.com/androidx/media/blob/1.8.0/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/audio/DefaultAudioSink.java).
